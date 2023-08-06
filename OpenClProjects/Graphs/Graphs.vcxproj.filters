@@ -32,7 +32,7 @@
     <ClInclude Include="device.h">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="require.h">
+    <ClInclude Include="required.h">
       <Filter>Resource Files</Filter>
     </ClInclude>
   </ItemGroup>

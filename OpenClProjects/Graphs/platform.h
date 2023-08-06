@@ -15,7 +15,7 @@ namespace platform
 {
 
 
-std::vector<cl_platform_id> GetAvailablePlatforms()
+std::vector<cl_platform_id> GetAvailablePlatforms(cl_int* const result_out)
 {
     cl_int  result     = CL_SUCCESS;
     cl_uint nPlatforms = 0;
@@ -31,8 +31,47 @@ std::vector<cl_platform_id> GetAvailablePlatforms()
     result = clGetPlatformIDs(nPlatforms, platformIds.data(), nullptr);
 
     OPENCL_CHECK_ERROR(result);
+    *result_out = result;
 
     return platformIds;
+}
+
+
+template<typename ParamType>
+std::unique_ptr<ParamType> QueryPlatformParamValue(
+    const cl_platform_id   platformId,
+    const cl_platform_info paramName,
+    cl_int* const          result_out)
+{
+    cl_int result                = CL_SUCCESS;
+    size_t paramValueSizeInBytes = 0;
+
+    // Query size of parameter value.
+    result = clGetPlatformInfo(
+        platformId,
+        paramName,
+        0,
+        nullptr,
+        &paramValueSizeInBytes
+    );
+
+    OPENCL_CHECK_ERROR(result);
+
+    std::unique_ptr<ParamType> paramValue{ new ParamType[paramValueSizeInBytes / sizeof(ParamType)] };
+
+    // Query parameter value.
+    result = clGetPlatformInfo(
+        platformId,
+        paramName,
+        paramValueSizeInBytes,
+        paramValue.get(),
+        nullptr
+    );
+
+    OPENCL_CHECK_ERROR(result);
+    *result_out = result;
+
+    return paramValue;
 }
 
 
@@ -60,28 +99,10 @@ cl_int DisplayPlatformInfo(const cl_platform_id platformId)
 
     for (size_t i = 0; i < paramNames.size(); i++)
     {
-        size_t paramValueSizeInBytes = 0;
-
-        // Query size of parameter value.
-        result = clGetPlatformInfo(
+        const auto paramValue = QueryPlatformParamValue<char>(
             platformId,
             paramNames[i],
-            0,
-            nullptr,
-            &paramValueSizeInBytes
-        );
-
-        OPENCL_CHECK_ERROR(result);
-
-        std::unique_ptr<char[]> paramValue{ new char[paramValueSizeInBytes] };
-
-        // Query parameter value.
-        result = clGetPlatformInfo(
-            platformId,
-            paramNames[i],
-            paramValueSizeInBytes,
-            paramValue.get(),
-            nullptr
+            &result
         );
 
         OPENCL_CHECK_ERROR(result);

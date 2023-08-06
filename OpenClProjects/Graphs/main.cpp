@@ -3,16 +3,20 @@
 #include <CL/cl.h>
 
 #include <algorithm>
+#include <iostream>
+#include <stdlib.h>
 #include <unordered_set>
 
 #include "debug.h"
 #include "platform.h"
-#include "require.h"
+#include "required.h"
 
 
 int main()
 {
-    const auto platformIds = platform::GetAvailablePlatforms();
+    cl_int result = CL_SUCCESS;
+
+    const auto platformIds = platform::GetAvailablePlatforms(&result);
 
     #ifdef _DEBUG
     
@@ -30,12 +34,26 @@ int main()
     for (const auto platformId : platformIds)
     {
         // Query profile of candidate platform.
+        const auto platformProfile = platform::QueryPlatformParamValue<char>(
+            platformId,
+            CL_PLATFORM_PROFILE,
+            &result
+        );
 
+        OPENCL_CHECK_ERROR(result);
+
+        if (required::PlatformProfile == platformProfile.get())
+        {
+            platform = platformId;
+            break;
+        }
     }
 
-    std::cout << require::requiredPlatformProfile << std::endl;
-
-    
+    if (platform == nullptr)
+    {
+        std::cout << "No suitable OpenCL platform was detected." << std::endl;
+        return EXIT_SUCCESS;
+    }
 
 
 }
