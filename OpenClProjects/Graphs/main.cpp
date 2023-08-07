@@ -2,10 +2,11 @@
 
 #include <CL/cl.h>
 
-#include <algorithm>
 #include <iostream>
 #include <stdlib.h>
+#include <string>
 #include <unordered_set>
+#include <vector>
 
 #include "debug.h"
 #include "platform.h"
@@ -14,35 +15,52 @@
 
 int main()
 {
-    cl_int result = CL_SUCCESS;
-
-    const auto platformIds = platform::GetAvailablePlatforms(&result);
+    cl_int                      result      = CL_SUCCESS;
+    std::vector<cl_platform_id> platformIds = {};
+   
+    result = platform::GetAvailablePlatforms(platformIds);
+    OPENCL_RETURN_ON_ERROR(result);
 
     #ifdef _DEBUG
-    
-    std::for_each(
-        platformIds.cbegin(),
-        platformIds.cend(),
-        platform::DisplayPlatformInfo
-    );
+
+    for (const auto platformId : platformIds)
+    {
+        result = platform::DisplayPlatformInfo(platformId);
+        OPENCL_RETURN_ON_ERROR(result);
+    }
 
     #endif // _DEBUG
 
     // Choose the first available platform that meets our requirements.
-    cl_platform_id platform = nullptr;
+    cl_platform_id    platform        = nullptr;
+    std::vector<char> platformProfile = {};
+    std::vector<char> platformName    = {};
 
     for (const auto platformId : platformIds)
     {
         // Query profile of candidate platform.
-        const auto platformProfile = platform::QueryPlatformParamValue<char>(
+        result = platform::QueryPlatformParamValue(
             platformId,
             CL_PLATFORM_PROFILE,
-            &result
+            platformProfile
         );
+        OPENCL_RETURN_ON_ERROR(result);
 
-        OPENCL_CHECK_ERROR(result);
+        // Query name of candidate platform.
+        result = platform::QueryPlatformParamValue(
+            platformId,
+            CL_PLATFORM_NAME,
+            platformName
+        );
+        OPENCL_RETURN_ON_ERROR(result);
 
-        if (required::PlatformProfile == platformProfile.get())
+        if (
+            (platformProfile.data() == required::PlatformProfile) &&
+            (
+                platformName.data() == required::PlatformNameNvda ||
+                platformName.data() == required::PlatformNameAmd
+            )
+        )
         {
             platform = platformId;
             break;
@@ -52,7 +70,7 @@ int main()
     if (platform == nullptr)
     {
         std::cout << "No suitable OpenCL platform was detected." << std::endl;
-        return EXIT_SUCCESS;
+        return CL_SUCCESS;
     }
 
 

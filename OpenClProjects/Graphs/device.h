@@ -56,8 +56,7 @@ cl_int DisplayGeneralDeviceInfo(const cl_device_id deviceId)
             &paramValue,
             nullptr
         );
-
-        OPENCL_CHECK_ERROR(result);
+        OPENCL_RETURN_ON_ERROR(result);
 
         std::cout << paramNameStrs[i] << ": " << paramValue << "\n";
     }
@@ -79,8 +78,7 @@ cl_int DisplayAllDevices(const cl_platform_id platformId)
         nullptr,
         &nDevices
     );
-
-    OPENCL_CHECK_ERROR(result);
+    OPENCL_RETURN_ON_ERROR(result);
 
     std::vector<cl_device_id> deviceIds{nDevices};
 
@@ -92,8 +90,7 @@ cl_int DisplayAllDevices(const cl_platform_id platformId)
         deviceIds.data(),
         nullptr
     );
-
-    OPENCL_CHECK_ERROR(result);
+    OPENCL_RETURN_ON_ERROR(result);
 
     std::for_each(
         deviceIds.cbegin(),

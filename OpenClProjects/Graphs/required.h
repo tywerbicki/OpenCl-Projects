@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <unordered_set>
 
 
 namespace required
@@ -10,12 +9,8 @@ namespace required
 
 inline extern const std::string PlatformProfile = "FULL_PROFILE";
 
-
-inline extern const std::unordered_set<std::string> PlatformNames =
-{
-    "NVIDIA CUDA",
-    "AMD ROCM"
-};
+inline extern const std::string PlatformNameNvda = "NVIDIA CUDA";
+inline extern const std::string PlatformNameAmd  = "AMD ROCM";
 
 
 } // required

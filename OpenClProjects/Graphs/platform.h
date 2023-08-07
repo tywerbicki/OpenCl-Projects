@@ -3,7 +3,6 @@
 #include <CL/cl.h>
 
 #include <array>
-#include <memory>
 #include <iostream>
 #include <vector>
 
@@ -15,33 +14,30 @@ namespace platform
 {
 
 
-std::vector<cl_platform_id> GetAvailablePlatforms(cl_int* const result_out)
+cl_int GetAvailablePlatforms(std::vector<cl_platform_id>& platformIds)
 {
     cl_int  result     = CL_SUCCESS;
     cl_uint nPlatforms = 0;
 
     // Query the number of available platforms.
     result = clGetPlatformIDs(0, nullptr, &nPlatforms);
+    OPENCL_RETURN_ON_ERROR(result);
 
-    OPENCL_CHECK_ERROR(result);
-
-    std::vector<cl_platform_id> platformIds{nPlatforms};
+    platformIds.resize(nPlatforms);
 
     // Query the available platform ids.
     result = clGetPlatformIDs(nPlatforms, platformIds.data(), nullptr);
+    OPENCL_PRINT_ON_ERROR(result);
 
-    OPENCL_CHECK_ERROR(result);
-    *result_out = result;
-
-    return platformIds;
+    return result;
 }
 
 
 template<typename ParamType>
-std::unique_ptr<ParamType> QueryPlatformParamValue(
-    const cl_platform_id   platformId,
-    const cl_platform_info paramName,
-    cl_int* const          result_out)
+cl_int QueryPlatformParamValue(
+    const cl_platform_id    platformId,
+    const cl_platform_info  paramName,
+    std::vector<ParamType>& paramValue)
 {
     cl_int result                = CL_SUCCESS;
     size_t paramValueSizeInBytes = 0;
@@ -54,24 +50,21 @@ std::unique_ptr<ParamType> QueryPlatformParamValue(
         nullptr,
         &paramValueSizeInBytes
     );
+    OPENCL_RETURN_ON_ERROR(result);
 
-    OPENCL_CHECK_ERROR(result);
-
-    std::unique_ptr<ParamType> paramValue{ new ParamType[paramValueSizeInBytes / sizeof(ParamType)] };
+    paramValue.resize(paramValueSizeInBytes / sizeof(ParamType));
 
     // Query parameter value.
     result = clGetPlatformInfo(
         platformId,
         paramName,
         paramValueSizeInBytes,
-        paramValue.get(),
+        paramValue.data(),
         nullptr
     );
+    OPENCL_PRINT_ON_ERROR(result);
 
-    OPENCL_CHECK_ERROR(result);
-    *result_out = result;
-
-    return paramValue;
+    return result;
 }
 
 
@@ -99,15 +92,18 @@ cl_int DisplayPlatformInfo(const cl_platform_id platformId)
 
     for (size_t i = 0; i < paramNames.size(); i++)
     {
-        const auto paramValue = QueryPlatformParamValue<char>(
+        std::vector<char> paramValue;
+
+        result = QueryPlatformParamValue(
             platformId,
             paramNames[i],
-            &result
+            paramValue
         );
+        OPENCL_RETURN_ON_ERROR(result);
 
-        OPENCL_CHECK_ERROR(result);
-
-        std::cout << paramNameStrs[i] << ": " << paramValue << "\n";
+        std::cout << paramNameStrs[i] << ": ";
+        for (const auto k : paramValue) std::cout << k;
+        std::cout << "\n";
     }
 
     device::DisplayAllDevices(platformId);
