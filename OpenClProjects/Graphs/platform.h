@@ -8,6 +8,7 @@
 
 #include "debug.h"
 #include "device.h"
+#include "required.h"
 
 
 namespace platform
@@ -88,12 +89,11 @@ cl_int DisplayPlatformInfo(const cl_platform_id platformId)
         "CL_PLATFORM_EXTENSIONS"
     };
 
-    cl_int result = CL_SUCCESS;
+    cl_int            result     = CL_SUCCESS;
+    std::vector<char> paramValue = {};
 
     for (size_t i = 0; i < paramNames.size(); i++)
     {
-        std::vector<char> paramValue;
-
         result = QueryPlatformParamValue(
             platformId,
             paramNames[i],
@@ -107,6 +107,63 @@ cl_int DisplayPlatformInfo(const cl_platform_id platformId)
     }
 
     device::DisplayAllDevices(platformId);
+
+    return result;
+}
+
+
+cl_int AcquirePlatform(cl_platform_id& platform)
+{
+    cl_int                      result      = CL_SUCCESS;
+    std::vector<cl_platform_id> platformIds = {};
+   
+    result = platform::GetAvailablePlatforms(platformIds);
+    OPENCL_RETURN_ON_ERROR(result);
+
+    #ifdef _DEBUG
+
+    for (const auto platformId : platformIds)
+    {
+        result = platform::DisplayPlatformInfo(platformId);
+        OPENCL_RETURN_ON_ERROR(result);
+    }
+
+    #endif // _DEBUG
+
+    // Choose the first available platform that meets our requirements.
+    std::vector<char> platformProfile = {};
+    std::vector<char> platformName    = {};
+
+    for (const auto platformId : platformIds)
+    {
+        // Query profile of candidate platform.
+        result = platform::QueryPlatformParamValue(
+            platformId,
+            CL_PLATFORM_PROFILE,
+            platformProfile
+        );
+        OPENCL_RETURN_ON_ERROR(result);
+
+        // Query name of candidate platform.
+        result = platform::QueryPlatformParamValue(
+            platformId,
+            CL_PLATFORM_NAME,
+            platformName
+        );
+        OPENCL_RETURN_ON_ERROR(result);
+
+        if (
+            (platformProfile.data() == required::PlatformProfile) &&
+            (
+                platformName.data() == required::PlatformNameNvda ||
+                platformName.data() == required::PlatformNameAmd
+            )
+        )
+        {
+            platform = platformId;
+            break;
+        }
+    }
 
     return result;
 }
