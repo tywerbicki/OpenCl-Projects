@@ -24,5 +24,12 @@ int main()
         return CL_SUCCESS;
     }
 
+    result = device::AcquireDevice(platform, device);
+    OPENCL_RETURN_ON_ERROR(result);
 
+    if (device == nullptr)
+    {
+        std::cout << "No suitable OpenCL device was detected." << std::endl;
+        return CL_SUCCESS;
+    }
 }

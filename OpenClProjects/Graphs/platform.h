@@ -4,6 +4,7 @@
 
 #include <array>
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include "debug.h"
@@ -69,9 +70,33 @@ cl_int QueryPlatformParamValue(
 }
 
 
+cl_int QueryPlatformParamValue(
+    const cl_platform_id   platformId,
+    const cl_platform_info paramName,
+    std::string&           paramValue)
+{
+    cl_int            result        = CL_SUCCESS;
+    std::vector<char> paramValueVec = {};
+
+    result = QueryPlatformParamValue(
+        platformId,
+        paramName,
+        paramValueVec
+    );
+    OPENCL_RETURN_ON_ERROR(result);
+
+    paramValue.assign(
+        paramValueVec.data(),
+        paramValueVec.size() - 1
+    );
+
+    return result;
+}
+
+
 cl_int DisplayPlatformInfo(const cl_platform_id platformId)
 {
-    const std::array<cl_platform_info, 5> paramNames
+    const std::array<const cl_platform_info, 5> paramNames
     {
         CL_PLATFORM_PROFILE,
         CL_PLATFORM_VERSION,
@@ -80,7 +105,7 @@ cl_int DisplayPlatformInfo(const cl_platform_id platformId)
         CL_PLATFORM_EXTENSIONS
     };
 
-    const std::array<const char*, paramNames.size()> paramNameStrs
+    const std::array<const std::string, paramNames.size()> paramNameStrs
     {
         "CL_PLATFORM_PROFILE",
         "CL_PLATFORM_VERSION",
@@ -89,8 +114,8 @@ cl_int DisplayPlatformInfo(const cl_platform_id platformId)
         "CL_PLATFORM_EXTENSIONS"
     };
 
-    cl_int            result     = CL_SUCCESS;
-    std::vector<char> paramValue = {};
+    cl_int      result     = CL_SUCCESS;
+    std::string paramValue = {};
 
     for (size_t i = 0; i < paramNames.size(); i++)
     {
@@ -101,12 +126,8 @@ cl_int DisplayPlatformInfo(const cl_platform_id platformId)
         );
         OPENCL_RETURN_ON_ERROR(result);
 
-        std::cout << paramNameStrs[i] << ": ";
-        for (const auto k : paramValue) std::cout << k;
-        std::cout << "\n";
+        std::cout << paramNameStrs[i] << ": " << paramValue << "\n";
     }
-
-    device::DisplayAllDevices(platformId);
 
     return result;
 }
@@ -131,8 +152,8 @@ cl_int AcquirePlatform(cl_platform_id& platform)
     #endif // _DEBUG
 
     // Choose the first available platform that meets our requirements.
-    std::vector<char> platformProfile = {};
-    std::vector<char> platformName    = {};
+    std::string platformProfile = {};
+    std::string platformName    = {};
 
     for (const auto platformId : platformIds)
     {
@@ -144,6 +165,8 @@ cl_int AcquirePlatform(cl_platform_id& platform)
         );
         OPENCL_RETURN_ON_ERROR(result);
 
+        if (platformProfile != required::PlatformProfile) continue;
+
         // Query name of candidate platform.
         result = platform::QueryPlatformParamValue(
             platformId,
@@ -152,17 +175,11 @@ cl_int AcquirePlatform(cl_platform_id& platform)
         );
         OPENCL_RETURN_ON_ERROR(result);
 
-        if (
-            (platformProfile.data() == required::PlatformProfile) &&
-            (
-                platformName.data() == required::PlatformNameNvda ||
-                platformName.data() == required::PlatformNameAmd
-            )
-        )
-        {
-            platform = platformId;
-            break;
-        }
+        if (platformName != required::PlatformNameNvda &&
+            platformName != required::PlatformNameAmd    ) continue;
+
+        platform = platformId;
+        break;
     }
 
     return result;

@@ -2,12 +2,13 @@
 
 #include <CL/cl.h>
 
-#include <algorithm>
 #include <array>
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include "debug.h"
+#include "required.h"
 
 
 namespace device
@@ -39,6 +40,28 @@ cl_int GetAvailableDevices(
         CL_DEVICE_TYPE_ALL,
         nDevices,
         deviceIds.data(),
+        nullptr
+    );
+    OPENCL_PRINT_ON_ERROR(result);
+
+    return result;
+}
+
+
+template<typename ParamType>
+cl_int QueryDeviceParamValue(
+    const cl_device_id   device,
+    const cl_device_info paramName,
+    ParamType&           paramValue)
+{
+    cl_int result = CL_SUCCESS;
+
+    // Query parameter value.
+    result = clGetDeviceInfo(
+        device,
+        paramName,
+        sizeof(ParamType),
+        &paramValue,
         nullptr
     );
     OPENCL_PRINT_ON_ERROR(result);
@@ -82,19 +105,9 @@ cl_int QueryDeviceParamValue(
 }
 
 
-template<typename ParamType>
-cl_int QueryDeviceParamValue(
-    const cl_device_id   device,
-    const cl_device_info paramName,
-    ParamType&           paramValue)
-{
-
-}
-
-
 cl_int DisplayGeneralDeviceInfo(const cl_device_id deviceId)
 {
-    const std::array<cl_device_info, 9> paramNames
+    const std::array<const cl_device_info, 9> paramNames
     {
         CL_DEVICE_TYPE,
         CL_DEVICE_MAX_COMPUTE_UNITS,
@@ -107,7 +120,7 @@ cl_int DisplayGeneralDeviceInfo(const cl_device_id deviceId)
         CL_DEVICE_HOST_UNIFIED_MEMORY
     };
 
-    const std::array<const char*, paramNames.size()> paramNameStrs
+    const std::array<const std::string, paramNames.size()> paramNameStrs
     {
         "CL_DEVICE_TYPE",
         "CL_DEVICE_MAX_COMPUTE_UNITS",
@@ -127,12 +140,10 @@ cl_int DisplayGeneralDeviceInfo(const cl_device_id deviceId)
         cl_ulong paramValue = 0;
 
         // Query parameter value.
-        result = clGetDeviceInfo(
+        result = QueryDeviceParamValue(
             deviceId,
             paramNames[i],
-            sizeof(paramValue),
-            &paramValue,
-            nullptr
+            paramValue
         );
         OPENCL_RETURN_ON_ERROR(result);
 
@@ -157,13 +168,33 @@ cl_int AcquireDevice(
 
     for (const auto deviceId : deviceIds)
     {
-        result = platform::DisplayPlatformInfo(platformId);
+        result = DisplayGeneralDeviceInfo(deviceId);
         OPENCL_RETURN_ON_ERROR(result);
     }
 
     #endif // _DEBUG
-}
 
+    // Choose the first available device that meets our requirements.
+    cl_device_type deviceType = NULL;
+
+    for (const auto deviceId : deviceIds)
+    {
+        // Query profile of candidate device.
+        result = QueryDeviceParamValue(
+            deviceId,
+            CL_DEVICE_TYPE,
+            deviceType
+        );
+        OPENCL_RETURN_ON_ERROR(result);
+
+        if (deviceType != required::DeviceTypeGpu) continue;
+
+        device = deviceId;
+        break;
+    }
+
+    return result;
+}
 
 
 } // device
