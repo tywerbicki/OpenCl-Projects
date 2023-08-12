@@ -35,5 +35,8 @@
     <ClInclude Include="required.h">
       <Filter>Resource Files</Filter>
     </ClInclude>
+    <ClInclude Include="exec.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

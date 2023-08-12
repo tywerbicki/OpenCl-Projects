@@ -15,9 +15,9 @@ namespace device
 {
 
 
-cl_int GetAvailableDevices(
+cl_int GetAllAvailable(
     const cl_platform_id       platform,
-    std::vector<cl_device_id>& deviceIds)
+    std::vector<cl_device_id>& devices)
 {
     cl_int  result   = CL_SUCCESS;
     cl_uint nDevices = 0;
@@ -32,14 +32,14 @@ cl_int GetAvailableDevices(
     );
     OPENCL_RETURN_ON_ERROR(result);
 
-    deviceIds.resize(nDevices);
+    devices.resize(nDevices);
 
     // Query ids of all available devices.
     result = clGetDeviceIDs(
         platform,
         CL_DEVICE_TYPE_ALL,
         nDevices,
-        deviceIds.data(),
+        devices.data(),
         nullptr
     );
     OPENCL_PRINT_ON_ERROR(result);
@@ -49,7 +49,7 @@ cl_int GetAvailableDevices(
 
 
 template<typename ParamType>
-cl_int QueryDeviceParamValue(
+cl_int QueryParamValue(
     const cl_device_id   device,
     const cl_device_info paramName,
     ParamType&           paramValue)
@@ -71,7 +71,7 @@ cl_int QueryDeviceParamValue(
 
 
 template<typename ParamType>
-cl_int QueryDeviceParamValue(
+cl_int QueryParamValue(
     const cl_device_id      device,
     const cl_device_info    paramName,
     std::vector<ParamType>& paramValue)
@@ -105,7 +105,7 @@ cl_int QueryDeviceParamValue(
 }
 
 
-cl_int DisplayGeneralDeviceInfo(const cl_device_id deviceId)
+cl_int DisplayGeneralInfo(const cl_device_id device)
 {
     const std::array<const cl_device_info, 9> paramNames
     {
@@ -140,8 +140,8 @@ cl_int DisplayGeneralDeviceInfo(const cl_device_id deviceId)
         cl_ulong paramValue = 0;
 
         // Query parameter value.
-        result = QueryDeviceParamValue(
-            deviceId,
+        result = QueryParamValue(
+            device,
             paramNames[i],
             paramValue
         );
@@ -154,45 +154,26 @@ cl_int DisplayGeneralDeviceInfo(const cl_device_id deviceId)
 }
 
 
-cl_int AcquireDevice(
-    const cl_platform_id platform,
-    cl_device_id&        device)
+cl_int IsConformant(const cl_device_id device, bool& isConformant)
 {
-    cl_int                      result  = CL_SUCCESS;
-    std::vector<cl_device_id> deviceIds = {};
+    cl_int         result     = CL_SUCCESS;
+    cl_device_type deviceType = 0;
 
-    result = GetAvailableDevices(platform, deviceIds);
+    // Query type of candidate device.
+    result = QueryParamValue(
+        device,
+        CL_DEVICE_TYPE,
+        deviceType
+    );
     OPENCL_RETURN_ON_ERROR(result);
 
-    #ifdef _DEBUG
-
-    for (const auto deviceId : deviceIds)
+    if (deviceType != required::DeviceTypeGpu)
     {
-        result = DisplayGeneralDeviceInfo(deviceId);
-        OPENCL_RETURN_ON_ERROR(result);
+        isConformant = false;
+        return result;
     }
 
-    #endif // _DEBUG
-
-    // Choose the first available device that meets our requirements.
-    cl_device_type deviceType = NULL;
-
-    for (const auto deviceId : deviceIds)
-    {
-        // Query profile of candidate device.
-        result = QueryDeviceParamValue(
-            deviceId,
-            CL_DEVICE_TYPE,
-            deviceType
-        );
-        OPENCL_RETURN_ON_ERROR(result);
-
-        if (deviceType != required::DeviceTypeGpu) continue;
-
-        device = deviceId;
-        break;
-    }
-
+    isConformant = true;
     return result;
 }
 

@@ -3,33 +3,25 @@
 #include <CL/cl.h>
 
 #include <iostream>
+#include <vector>
 
 #include "debug.h"
-#include "device.h"
-#include "platform.h"
+#include "exec.h"
 
 
 int main()
 {
-    cl_int         result   = CL_SUCCESS;
-    cl_platform_id platform = nullptr;
-    cl_device_id   device   = nullptr;
+    cl_int                           result    = CL_SUCCESS;
+    std::vector<exec::ExecResources> resources = {};
 
-    result = platform::AcquirePlatform(platform);
-    OPENCL_RETURN_ON_ERROR(result);
-    
-    if (platform == nullptr)
-    {
-        std::cout << "No suitable OpenCL platform was detected." << std::endl;
-        return CL_SUCCESS;
-    }
-
-    result = device::AcquireDevice(platform, device);
+    result = exec::GetResources(resources);
     OPENCL_RETURN_ON_ERROR(result);
 
-    if (device == nullptr)
+    if (resources.size() == 0)
     {
         std::cout << "No suitable OpenCL device was detected." << std::endl;
         return CL_SUCCESS;
     }
+
+
 }

@@ -140,6 +140,7 @@
   <ItemGroup>
     <ClInclude Include="debug.h" />
     <ClInclude Include="device.h" />
+    <ClInclude Include="exec.h" />
     <ClInclude Include="platform.h" />
     <ClInclude Include="required.h" />
   </ItemGroup>

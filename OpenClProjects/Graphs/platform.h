@@ -16,7 +16,7 @@ namespace platform
 {
 
 
-cl_int GetAvailablePlatforms(std::vector<cl_platform_id>& platformIds)
+cl_int GetAllAvailable(std::vector<cl_platform_id>& platforms)
 {
     cl_int  result     = CL_SUCCESS;
     cl_uint nPlatforms = 0;
@@ -25,10 +25,10 @@ cl_int GetAvailablePlatforms(std::vector<cl_platform_id>& platformIds)
     result = clGetPlatformIDs(0, nullptr, &nPlatforms);
     OPENCL_RETURN_ON_ERROR(result);
 
-    platformIds.resize(nPlatforms);
+    platforms.resize(nPlatforms);
 
-    // Query the available platform ids.
-    result = clGetPlatformIDs(nPlatforms, platformIds.data(), nullptr);
+    // Query the available platforms' ids.
+    result = clGetPlatformIDs(nPlatforms, platforms.data(), nullptr);
     OPENCL_PRINT_ON_ERROR(result);
 
     return result;
@@ -36,8 +36,8 @@ cl_int GetAvailablePlatforms(std::vector<cl_platform_id>& platformIds)
 
 
 template<typename ParamType>
-cl_int QueryPlatformParamValue(
-    const cl_platform_id    platformId,
+cl_int QueryParamValue(
+    const cl_platform_id    platform,
     const cl_platform_info  paramName,
     std::vector<ParamType>& paramValue)
 {
@@ -46,7 +46,7 @@ cl_int QueryPlatformParamValue(
 
     // Query size of parameter value.
     result = clGetPlatformInfo(
-        platformId,
+        platform,
         paramName,
         0,
         nullptr,
@@ -58,7 +58,7 @@ cl_int QueryPlatformParamValue(
 
     // Query parameter value.
     result = clGetPlatformInfo(
-        platformId,
+        platform,
         paramName,
         paramValueSizeInBytes,
         paramValue.data(),
@@ -70,16 +70,16 @@ cl_int QueryPlatformParamValue(
 }
 
 
-cl_int QueryPlatformParamValue(
-    const cl_platform_id   platformId,
+cl_int QueryParamValue(
+    const cl_platform_id   platform,
     const cl_platform_info paramName,
     std::string&           paramValue)
 {
     cl_int            result        = CL_SUCCESS;
     std::vector<char> paramValueVec = {};
 
-    result = QueryPlatformParamValue(
-        platformId,
+    result = QueryParamValue(
+        platform,
         paramName,
         paramValueVec
     );
@@ -94,7 +94,7 @@ cl_int QueryPlatformParamValue(
 }
 
 
-cl_int DisplayPlatformInfo(const cl_platform_id platformId)
+cl_int DisplayInfo(const cl_platform_id platform)
 {
     const std::array<const cl_platform_info, 5> paramNames
     {
@@ -119,8 +119,8 @@ cl_int DisplayPlatformInfo(const cl_platform_id platformId)
 
     for (size_t i = 0; i < paramNames.size(); i++)
     {
-        result = QueryPlatformParamValue(
-            platformId,
+        result = QueryParamValue(
+            platform,
             paramNames[i],
             paramValue
         );
@@ -133,55 +133,42 @@ cl_int DisplayPlatformInfo(const cl_platform_id platformId)
 }
 
 
-cl_int AcquirePlatform(cl_platform_id& platform)
+cl_int IsConformant(const cl_platform_id platform, bool& isConformant)
 {
-    cl_int                      result      = CL_SUCCESS;
-    std::vector<cl_platform_id> platformIds = {};
-   
-    result = platform::GetAvailablePlatforms(platformIds);
-    OPENCL_RETURN_ON_ERROR(result);
-
-    #ifdef _DEBUG
-
-    for (const auto platformId : platformIds)
-    {
-        result = platform::DisplayPlatformInfo(platformId);
-        OPENCL_RETURN_ON_ERROR(result);
-    }
-
-    #endif // _DEBUG
-
-    // Choose the first available platform that meets our requirements.
+    cl_int      result          = CL_SUCCESS;
     std::string platformProfile = {};
     std::string platformName    = {};
 
-    for (const auto platformId : platformIds)
+    // Query profile of candidate platform.
+    result = platform::QueryParamValue(
+        platform,
+        CL_PLATFORM_PROFILE,
+        platformProfile
+    );
+    OPENCL_RETURN_ON_ERROR(result);
+
+    if (platformProfile != required::PlatformProfile)
     {
-        // Query profile of candidate platform.
-        result = platform::QueryPlatformParamValue(
-            platformId,
-            CL_PLATFORM_PROFILE,
-            platformProfile
-        );
-        OPENCL_RETURN_ON_ERROR(result);
-
-        if (platformProfile != required::PlatformProfile) continue;
-
-        // Query name of candidate platform.
-        result = platform::QueryPlatformParamValue(
-            platformId,
-            CL_PLATFORM_NAME,
-            platformName
-        );
-        OPENCL_RETURN_ON_ERROR(result);
-
-        if (platformName != required::PlatformNameNvda &&
-            platformName != required::PlatformNameAmd    ) continue;
-
-        platform = platformId;
-        break;
+        isConformant = false;
+        return result;
     }
 
+    // Query name of candidate platform.
+    result = platform::QueryParamValue(
+        platform,
+        CL_PLATFORM_NAME,
+        platformName
+    );
+    OPENCL_RETURN_ON_ERROR(result);
+
+    if (platformName != required::PlatformNameNvda &&
+        platformName != required::PlatformNameAmd)
+    {
+        isConformant = false;
+        return result;
+    }
+
+    isConformant = true;
     return result;
 }
 
