@@ -5,19 +5,19 @@
 #include <iostream>
 #include <vector>
 
+#include "context.h"
 #include "debug.h"
-#include "exec.h"
 
 
 int main()
 {
-    cl_int                           result    = CL_SUCCESS;
-    std::vector<exec::ExecResources> resources = {};
+    cl_int                  result   = CL_SUCCESS;
+    std::vector<cl_context> contexts = {};
 
-    result = exec::GetResources(resources);
+    result = context::GetAllAvailable(contexts);
     OPENCL_RETURN_ON_ERROR(result);
 
-    if (resources.size() == 0)
+    if (contexts.size() == 0)
     {
         std::cout << "No suitable OpenCL device was detected." << std::endl;
         return CL_SUCCESS;

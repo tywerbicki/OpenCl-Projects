@@ -2,7 +2,7 @@
 
 #include <CL/cl.h>
 
-#include <iostream>
+#include <array>
 #include <vector>
 
 #include "debug.h"
@@ -10,18 +10,11 @@
 #include "platform.h"
 
 
-namespace exec
+namespace context
 {
 
 
-struct ExecResources
-{
-	cl_platform_id            platform;
-	std::vector<cl_device_id> devices;
-};
-
-
-cl_int GetResources(std::vector<ExecResources>& resources)
+cl_int GetAllAvailable(std::vector<cl_context>& contexts)
 {
 	cl_int                      result             = CL_SUCCESS;
 	std::vector<cl_platform_id> availablePlatforms = {};
@@ -71,7 +64,23 @@ cl_int GetResources(std::vector<ExecResources>& resources)
 
             if (conformantDevices.size() > 0)
             {
-                resources.emplace_back(platform, std::move(conformantDevices));
+                const std::array<const cl_context_properties, 3> properties{
+                    CL_CONTEXT_PLATFORM,
+                    reinterpret_cast<cl_context_properties>(platform),
+                    0
+                };
+
+                // todo: add functional callback.
+                contexts.push_back(
+                    clCreateContext(
+                        properties.data(),
+                        static_cast<cl_uint>(conformantDevices.size()),
+                        conformantDevices.data(),
+                        nullptr,
+                        nullptr,
+                        nullptr
+                    )
+                );
             }
         }
     }
@@ -80,4 +89,4 @@ cl_int GetResources(std::vector<ExecResources>& resources)
 }
 
 
-} // exec
+} // context
