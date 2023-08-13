@@ -17,7 +17,7 @@ inline extern const std::string PlatformNameAmd  = "AMD ROCM";
 
 
 // Device requirements.
-inline extern const cl_device_type DeviceTypeGpu = CL_DEVICE_TYPE_GPU;
+inline extern const cl_device_type DeviceType = CL_DEVICE_TYPE_GPU;
 
 
 } // required

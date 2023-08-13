@@ -142,7 +142,11 @@
     <ClInclude Include="debug.h" />
     <ClInclude Include="device.h" />
     <ClInclude Include="platform.h" />
+    <ClInclude Include="program.h" />
     <ClInclude Include="required.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="vfadd.cl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

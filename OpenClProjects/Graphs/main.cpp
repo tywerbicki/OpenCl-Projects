@@ -7,6 +7,7 @@
 
 #include "context.h"
 #include "debug.h"
+#include "program.h"
 
 
 int main()
@@ -23,5 +24,9 @@ int main()
         return CL_SUCCESS;
     }
 
-
+    for (const auto context : contexts)
+    {
+        result = program::Build(context);
+        OPENCL_RETURN_ON_ERROR(result);
+    }
 }

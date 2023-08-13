@@ -167,7 +167,7 @@ cl_int IsConformant(const cl_device_id device, bool& isConformant)
     );
     OPENCL_RETURN_ON_ERROR(result);
 
-    if (deviceType != required::DeviceTypeGpu)
+    if (deviceType != required::DeviceType)
     {
         isConformant = false;
         return result;

@@ -70,7 +70,6 @@ cl_int GetAllAvailable(std::vector<cl_context>& contexts)
                     0
                 };
 
-                // todo: add functional callback.
                 contexts.push_back(
                     clCreateContext(
                         properties.data(),
