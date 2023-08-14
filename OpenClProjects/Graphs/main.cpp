@@ -24,9 +24,11 @@ int main()
         return CL_SUCCESS;
     }
 
-    for (const auto context : contexts)
+    std::vector<cl_program> programs{ contexts.size() };
+
+    for (size_t i = 0; i < contexts.size(); i++)
     {
-        result = program::Build(context);
+        result = program::Build(contexts[i], programs[i]);
         OPENCL_RETURN_ON_ERROR(result);
     }
 }

@@ -4,6 +4,8 @@
 
 #include <array>
 #include <fstream>
+#include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -14,7 +16,7 @@ namespace program
 {
 
 
-cl_int Build(const cl_context context)
+cl_int Build(const cl_context context, cl_program& program)
 {
 	cl_int  result   = CL_SUCCESS;
 	cl_uint nDevices = 0;
@@ -41,17 +43,48 @@ cl_int Build(const cl_context context)
 	);
 	OPENCL_RETURN_ON_ERROR(result);
 
-	const std::array<const std::string, 1> kernelPaths
+	constexpr size_t nKernels = 1;
+
+	const std::array<const std::string, nKernels> kernelPaths
 	{
 		"vfadd.cl"
 	};
 
-	std::array<const char*, kernelPaths.size()> kernelSource;
+	std::array<std::string, nKernels> kernels;
 
-	for (const auto kernelPath : kernelPaths)
+	for (size_t i = 0; i < nKernels; i++)
 	{
+		std::ifstream f{ kernelPaths[i] };
 
+		if (!f.is_open())
+		{
+			std::cerr << "Failed to open kernel: " << kernelPaths[i] << "\n";
+			return CL_BUILD_PROGRAM_FAILURE;
+		}
+
+		std::ostringstream kernelOsStream;
+		kernelOsStream << f.rdbuf();
+
+		kernels[i] = std::move(kernelOsStream.str());
 	}
+
+	const char* kernelCStrs[nKernels];
+	size_t      kernelLens[nKernels];
+
+	for (size_t i = 0; i < nKernels; i++)
+	{
+		kernelCStrs[i] = kernels[i].c_str();
+		kernelLens[i]  = kernels[i].size();
+	}
+
+	program = clCreateProgramWithSource(
+		context,
+		nKernels,
+		kernelCStrs,
+		kernelLens,
+		&result
+	);
+	OPENCL_RETURN_ON_ERROR(result);
 
 	return result;
 }
