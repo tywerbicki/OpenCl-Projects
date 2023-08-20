@@ -20,13 +20,11 @@ cl_int GetAllAvailable(std::vector<cl_platform_id>& platforms)
     cl_int  result     = CL_SUCCESS;
     cl_uint nPlatforms = 0;
 
-    // Query the number of available platforms.
     result = clGetPlatformIDs(0, nullptr, &nPlatforms);
     OPENCL_RETURN_ON_ERROR(result);
 
     platforms.resize(nPlatforms);
 
-    // Query the available platforms' ids.
     result = clGetPlatformIDs(nPlatforms, platforms.data(), nullptr);
     OPENCL_PRINT_ON_ERROR(result);
 
@@ -43,7 +41,6 @@ cl_int QueryParamValue(
     cl_int result                = CL_SUCCESS;
     size_t paramValueSizeInBytes = 0;
 
-    // Query size of parameter value.
     result = clGetPlatformInfo(
         platform,
         paramName,
@@ -55,7 +52,6 @@ cl_int QueryParamValue(
 
     paramValue.resize(paramValueSizeInBytes / sizeof(ParamType));
 
-    // Query parameter value.
     result = clGetPlatformInfo(
         platform,
         paramName,
@@ -138,7 +134,6 @@ cl_int IsConformant(const cl_platform_id platform, bool& isConformant)
     std::string platformProfile = {};
     std::string platformName    = {};
 
-    // Query profile of candidate platform.
     result = platform::QueryParamValue(
         platform,
         CL_PLATFORM_PROFILE,
@@ -152,7 +147,6 @@ cl_int IsConformant(const cl_platform_id platform, bool& isConformant)
         return result;
     }
 
-    // Query name of candidate platform.
     result = platform::QueryParamValue(
         platform,
         CL_PLATFORM_NAME,

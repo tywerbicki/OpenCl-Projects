@@ -18,7 +18,8 @@ namespace program
 {
 
 
-const std::string kernelDir = "./Kernels/";
+const std::string kernelsSourceDir     = "./KernelsSource/";
+const std::string kernelsBinaryRootDir = "./KernelsBinary/";
 
 constexpr size_t nKernels = 1;
 
@@ -83,18 +84,101 @@ cl_int GetBuildLog(
 }
 
 
+cl_int GetDevices(const cl_program program, std::vector<cl_device_id>& devices)
+{
+	cl_int  result   = CL_SUCCESS;
+	cl_uint nDevices = 0;
+
+	result = clGetProgramInfo(
+		program,
+		CL_PROGRAM_NUM_DEVICES,
+		sizeof(nDevices),
+		&nDevices,
+		nullptr
+	);
+	OPENCL_RETURN_ON_ERROR(result);
+
+	devices.resize(nDevices);
+
+	result = clGetProgramInfo(
+		program,
+		CL_PROGRAM_DEVICES,
+		devices.size() * sizeof(cl_device_id),
+		devices.data(),
+		nullptr
+	);
+	OPENCL_PRINT_ON_ERROR(result);
+
+	return result;
+}
+
+
+cl_int StoreBinaries(const cl_program program)
+{
+	cl_int                    result  = CL_SUCCESS;
+	std::vector<cl_device_id> devices = {};
+
+	result = GetDevices(program, devices);
+	OPENCL_RETURN_ON_ERROR(result);
+
+	std::vector<size_t> binarySizes(devices.size());
+
+	result = clGetProgramInfo(
+		program,
+		CL_PROGRAM_BINARY_SIZES,
+		binarySizes.size() * sizeof(size_t),
+		binarySizes.data(),
+		nullptr
+	);
+	OPENCL_RETURN_ON_ERROR(result);
+
+	std::vector<std::vector<unsigned char>> binaries(binarySizes.size());
+
+	for (size_t i = 0; i < binaries.size(); i++)
+	{
+		binaries[i].resize(binarySizes[i]);
+	}
+
+	std::vector<unsigned char*> binaryRawPtrs(binaries.size());
+
+	for (size_t i = 0; i < binaries.size(); i++)
+	{
+		binaryRawPtrs[i] = binaries[i].data();
+	}
+
+	result = clGetProgramInfo(
+		program,
+		CL_PROGRAM_BINARIES,
+		binaryRawPtrs.size(),
+		binaryRawPtrs.data(),
+		nullptr
+	);
+	OPENCL_RETURN_ON_ERROR(result);
+
+	// Write binaries to disk here.
+
+
+	return result;
+}
+
+
 cl_int Build(const cl_context context, cl_program& program)
 {
 	std::array<std::string, nKernels> kernelsSource = {};
 
 	for (size_t i = 0; i < nKernels; i++)
 	{
-		const std::string kernelRelPath = kernelDir + kernelFileNames[i];
+		const std::string kernelRelPath = kernelsSourceDir + kernelFileNames[i];
+
+		std::ifstream kernelBinaryIfStream(kernelRelPath + kernelBinarySuffix);
 
 		// Check if we already have a binary for the kernel.
+		if (kernelBinaryIfStream.is_open())
+		{
 
+		}
 
-		std::ifstream kernelIfStream{ kernelRelPath };
+		std::ifstream kernelIfStream(kernelRelPath);
 
 		if (!kernelIfStream.is_open())
 		{
@@ -141,7 +225,9 @@ cl_int Build(const cl_context context, cl_program& program)
 		nullptr
 	);
 
-	if (result == CL_BUILD_PROGRAM_FAILURE)
+	switch (result)
+	{
+	case CL_BUILD_PROGRAM_FAILURE:
 	{
 		for (const auto device : devices)
 		{
@@ -166,10 +252,23 @@ cl_int Build(const cl_context context, cl_program& program)
 				std::cout << buildLog;
 			}
 		}
+
+		return CL_BUILD_PROGRAM_FAILURE;
 	}
-	else
+
+	case CL_SUCCESS:
 	{
+		// Store program binaries here.
+		result = StoreBinaries(program);
+		OPENCL_RETURN_ON_ERROR(result);
+
+		break;
+	}
+
+	default:
 		OPENCL_PRINT_ON_ERROR(result);
+		return result;
+
 	}
 
 	return result;

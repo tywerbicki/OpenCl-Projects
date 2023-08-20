@@ -22,7 +22,6 @@ cl_int GetAllAvailable(
     cl_int  result   = CL_SUCCESS;
     cl_uint nDevices = 0;
 
-    // Query number of available devices.
     result = clGetDeviceIDs(
         platform,
         CL_DEVICE_TYPE_ALL,
@@ -34,7 +33,6 @@ cl_int GetAllAvailable(
 
     devices.resize(nDevices);
 
-    // Query ids of all available devices.
     result = clGetDeviceIDs(
         platform,
         CL_DEVICE_TYPE_ALL,
@@ -56,7 +54,6 @@ cl_int QueryParamValue(
 {
     cl_int result = CL_SUCCESS;
 
-    // Query parameter value.
     result = clGetDeviceInfo(
         device,
         paramName,
@@ -79,7 +76,6 @@ cl_int QueryParamValue(
     cl_int result                = CL_SUCCESS;
     size_t paramValueSizeInBytes = 0;
 
-    // Query size of parameter value.
     result = clGetDeviceInfo(
         device,
         paramName,
@@ -91,7 +87,6 @@ cl_int QueryParamValue(
 
     paramValue.resize(paramValueSizeInBytes / sizeof(ParamType));
 
-    // Query parameter value.
     result = clGetDeviceInfo(
         device,
         paramName,
@@ -139,7 +134,6 @@ cl_int DisplayGeneralInfo(const cl_device_id device)
     {
         cl_ulong paramValue = 0;
 
-        // Query parameter value.
         result = QueryParamValue(
             device,
             paramNames[i],
@@ -159,7 +153,6 @@ cl_int IsConformant(const cl_device_id device, bool& isConformant)
     cl_int         result     = CL_SUCCESS;
     cl_device_type deviceType = 0;
 
-    // Query type of candidate device.
     result = QueryParamValue(
         device,
         CL_DEVICE_TYPE,

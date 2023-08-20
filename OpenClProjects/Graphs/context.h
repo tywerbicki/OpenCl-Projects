@@ -19,7 +19,6 @@ cl_int GetDevices(const cl_context context, std::vector<cl_device_id>& devices)
     cl_int  result   = CL_SUCCESS;
 	cl_uint nDevices = 0;
 
-    // Query number of devices associated with the context.
 	result = clGetContextInfo(
 		context,
 		CL_CONTEXT_NUM_DEVICES,
@@ -31,7 +30,6 @@ cl_int GetDevices(const cl_context context, std::vector<cl_device_id>& devices)
 
     devices.resize(nDevices);
 
-    // Query the devices associated with the context.
 	result = clGetContextInfo(
 		context,
 		CL_CONTEXT_DEVICES,
