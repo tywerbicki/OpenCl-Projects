@@ -16,6 +16,29 @@ namespace program
 {
 
 
+constexpr size_t nKernels = 1;
+
+const std::array<const std::string, nKernels> kernelPaths
+{
+	"vfadd.cl"
+};
+
+
+#ifdef _DEBUG
+
+
+constexpr char buildOptions[] = "-cl-opt-disable -Werror -cl-std=CL2.0 -g";
+
+
+#else
+
+
+constexpr char buildOptions[] = "-Werror -cl-std=CL2.0";
+
+
+#endif // _DEBUG
+
+
 cl_int Build(const cl_context context, cl_program& program)
 {
 	cl_int  result   = CL_SUCCESS;
@@ -31,7 +54,7 @@ cl_int Build(const cl_context context, cl_program& program)
 	);
 	OPENCL_RETURN_ON_ERROR(result);
 
-	std::vector<cl_device_id> devices{ nDevices };
+	std::vector<cl_device_id> devices(nDevices);
 
 	// Query the devices associated with the context.
 	result = clGetContextInfo(
@@ -43,27 +66,20 @@ cl_int Build(const cl_context context, cl_program& program)
 	);
 	OPENCL_RETURN_ON_ERROR(result);
 
-	constexpr size_t nKernels = 1;
-
-	const std::array<const std::string, nKernels> kernelPaths
-	{
-		"vfadd.cl"
-	};
-
-	std::array<std::string, nKernels> kernels;
+	std::array<std::string, nKernels> kernels = {};
 
 	for (size_t i = 0; i < nKernels; i++)
 	{
-		std::ifstream f{ kernelPaths[i] };
+		std::ifstream kernelIfStream{ kernelPaths[i] };
 
-		if (!f.is_open())
+		if (!kernelIfStream.is_open())
 		{
 			std::cerr << "Failed to open kernel: " << kernelPaths[i] << "\n";
 			return CL_BUILD_PROGRAM_FAILURE;
 		}
 
 		std::ostringstream kernelOsStream;
-		kernelOsStream << f.rdbuf();
+		kernelOsStream << kernelIfStream.rdbuf();
 
 		kernels[i] = std::move(kernelOsStream.str());
 	}
@@ -85,6 +101,51 @@ cl_int Build(const cl_context context, cl_program& program)
 		&result
 	);
 	OPENCL_RETURN_ON_ERROR(result);
+
+	result = clBuildProgram(
+		program,
+		nDevices,
+		devices.data(),
+		buildOptions,
+		nullptr,
+		nullptr
+	);
+	
+	if (result == CL_BUILD_PROGRAM_FAILURE)
+	{
+		for (const auto device : devices)
+		{
+			size_t paramValueSizeInBytes = 0;
+
+			result = clGetProgramBuildInfo(
+				program,
+				device,
+				CL_PROGRAM_BUILD_LOG,
+				0,
+				nullptr,
+				&paramValueSizeInBytes
+			);
+			OPENCL_RETURN_ON_ERROR(result);
+
+			std::vector<char> paramValue(paramValueSizeInBytes);
+
+			result = clGetProgramBuildInfo(
+				program,
+				device,
+				CL_PROGRAM_BUILD_LOG,
+				paramValueSizeInBytes,
+				paramValue.data(),
+				nullptr
+			);
+			OPENCL_RETURN_ON_ERROR(result);
+
+			std::cout << paramValue.data() << "\n";
+		}
+	}
+	else
+	{
+		OPENCL_PRINT_ON_ERROR(result);
+	}
 
 	return result;
 }

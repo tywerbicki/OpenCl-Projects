@@ -32,7 +32,7 @@ cl_int GetAllAvailable(std::vector<cl_context>& contexts)
         #endif // _DEBUG
 
         bool platformIsConformant = false;
-        result = platform::IsConformant(platform, platformIsConformant);
+        result                    = platform::IsConformant(platform, platformIsConformant);
         OPENCL_RETURN_ON_ERROR(result);
 
         if (platformIsConformant)
@@ -53,7 +53,7 @@ cl_int GetAllAvailable(std::vector<cl_context>& contexts)
                 #endif // _DEBUG
 
                 bool deviceIsConformant = false;
-                result = device::IsConformant(device, deviceIsConformant);
+                result                  = device::IsConformant(device, deviceIsConformant);
                 OPENCL_RETURN_ON_ERROR(result);
 
                 if (deviceIsConformant)
@@ -70,16 +70,17 @@ cl_int GetAllAvailable(std::vector<cl_context>& contexts)
                     0
                 };
 
-                contexts.push_back(
-                    clCreateContext(
-                        properties.data(),
-                        static_cast<cl_uint>(conformantDevices.size()),
-                        conformantDevices.data(),
-                        nullptr,
-                        nullptr,
-                        nullptr
-                    )
+                const cl_context context = clCreateContext(
+                    properties.data(),
+                    static_cast<cl_uint>(conformantDevices.size()),
+                    conformantDevices.data(),
+                    nullptr,
+                    nullptr,
+                    &result
                 );
+                OPENCL_RETURN_ON_ERROR(result);
+
+                contexts.push_back(context);
             }
         }
     }

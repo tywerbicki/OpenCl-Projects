@@ -1,5 +1,3 @@
-
-
 __kernel
 void vfadd(
 	__global const float* a,
@@ -10,4 +8,3 @@ void vfadd(
 
 	result[gId] = a[gId] + b[gId];
 }
-

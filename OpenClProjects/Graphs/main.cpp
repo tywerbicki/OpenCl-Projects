@@ -24,7 +24,7 @@ int main()
         return CL_SUCCESS;
     }
 
-    std::vector<cl_program> programs{ contexts.size() };
+    std::vector<cl_program> programs(contexts.size());
 
     for (size_t i = 0; i < contexts.size(); i++)
     {
