@@ -3,6 +3,7 @@
 #include <CL/cl.h>
 
 #include <array>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -10,19 +11,23 @@
 #include <vector>
 
 #include "debug.h"
+#include "context.h"
 
 
 namespace program
 {
 
 
+const std::string kernelDir = "./Kernels/";
+
 constexpr size_t nKernels = 1;
 
-const std::array<const std::string, nKernels> kernelPaths
+const std::array<const std::string, nKernels> kernelFileNames
 {
 	"vfadd.cl"
 };
 
+const std::string kernelBinarySuffix = ".clbin";
 
 #ifdef _DEBUG
 
@@ -39,107 +44,127 @@ constexpr char buildOptions[] = "-Werror -cl-std=CL2.0";
 #endif // _DEBUG
 
 
+cl_int GetBuildLog(
+	const cl_program   program,
+	const cl_device_id device,
+	std::string&       buildLog)
+{
+	cl_int result                = CL_SUCCESS;
+	size_t paramValueSizeInBytes = 0;
+
+	result = clGetProgramBuildInfo(
+		program,
+		device,
+		CL_PROGRAM_BUILD_LOG,
+		0,
+		nullptr,
+		&paramValueSizeInBytes
+	);
+	OPENCL_RETURN_ON_ERROR(result);
+
+	std::vector<char> paramValue(paramValueSizeInBytes);
+
+	result = clGetProgramBuildInfo(
+		program,
+		device,
+		CL_PROGRAM_BUILD_LOG,
+		paramValueSizeInBytes,
+		paramValue.data(),
+		nullptr
+	);
+	OPENCL_RETURN_ON_ERROR(result);
+
+	buildLog.assign(
+		paramValue.data(),
+		paramValueSizeInBytes - 1
+	);
+
+	return result;
+}
+
+
 cl_int Build(const cl_context context, cl_program& program)
 {
-	cl_int  result   = CL_SUCCESS;
-	cl_uint nDevices = 0;
-
-	// Query number of devices associated with the context.
-	result = clGetContextInfo(
-		context,
-		CL_CONTEXT_NUM_DEVICES,
-		sizeof(nDevices),
-		&nDevices,
-		nullptr
-	);
-	OPENCL_RETURN_ON_ERROR(result);
-
-	std::vector<cl_device_id> devices(nDevices);
-
-	// Query the devices associated with the context.
-	result = clGetContextInfo(
-		context,
-		CL_CONTEXT_DEVICES,
-		devices.size() * sizeof(decltype(devices)::value_type),
-		devices.data(),
-		nullptr
-	);
-	OPENCL_RETURN_ON_ERROR(result);
-
-	std::array<std::string, nKernels> kernels = {};
+	std::array<std::string, nKernels> kernelsSource = {};
 
 	for (size_t i = 0; i < nKernels; i++)
 	{
-		std::ifstream kernelIfStream{ kernelPaths[i] };
+		const std::string kernelRelPath = kernelDir + kernelFileNames[i];
+
+		// Check if we already have a binary for the kernel.
+
+
+		std::ifstream kernelIfStream{ kernelRelPath };
 
 		if (!kernelIfStream.is_open())
 		{
-			std::cerr << "Failed to open kernel: " << kernelPaths[i] << "\n";
+			std::cerr << "Failed to open kernel: " << kernelFileNames[i] << "\n";
 			return CL_BUILD_PROGRAM_FAILURE;
 		}
 
 		std::ostringstream kernelOsStream;
 		kernelOsStream << kernelIfStream.rdbuf();
 
-		kernels[i] = std::move(kernelOsStream.str());
+		kernelsSource[i] = std::move(kernelOsStream.str());
 	}
 
-	const char* kernelCStrs[nKernels];
-	size_t      kernelLens[nKernels];
+	const char* kernelsSourceCStr[nKernels];
+	size_t      kernelsSourceLen[nKernels];
 
 	for (size_t i = 0; i < nKernels; i++)
 	{
-		kernelCStrs[i] = kernels[i].c_str();
-		kernelLens[i]  = kernels[i].size();
+		kernelsSourceCStr[i] = kernelsSource[i].c_str();
+		kernelsSourceLen[i]  = kernelsSource[i].size();
 	}
+
+	cl_int result = CL_SUCCESS;
 
 	program = clCreateProgramWithSource(
 		context,
 		nKernels,
-		kernelCStrs,
-		kernelLens,
+		kernelsSourceCStr,
+		kernelsSourceLen,
 		&result
 	);
 	OPENCL_RETURN_ON_ERROR(result);
 
+	std::vector<cl_device_id> devices = {};
+	result                            = context::GetDevices(context, devices);
+	OPENCL_RETURN_ON_ERROR(result);
+
 	result = clBuildProgram(
 		program,
-		nDevices,
+		static_cast<cl_uint>(devices.size()),
 		devices.data(),
 		buildOptions,
 		nullptr,
 		nullptr
 	);
-	
+
 	if (result == CL_BUILD_PROGRAM_FAILURE)
 	{
 		for (const auto device : devices)
 		{
-			size_t paramValueSizeInBytes = 0;
+			cl_build_status buildStatus = CL_BUILD_NONE;
 
 			result = clGetProgramBuildInfo(
 				program,
 				device,
-				CL_PROGRAM_BUILD_LOG,
-				0,
-				nullptr,
-				&paramValueSizeInBytes
-			);
-			OPENCL_RETURN_ON_ERROR(result);
-
-			std::vector<char> paramValue(paramValueSizeInBytes);
-
-			result = clGetProgramBuildInfo(
-				program,
-				device,
-				CL_PROGRAM_BUILD_LOG,
-				paramValueSizeInBytes,
-				paramValue.data(),
+				CL_PROGRAM_BUILD_STATUS,
+				sizeof(buildStatus),
+				&buildStatus,
 				nullptr
 			);
 			OPENCL_RETURN_ON_ERROR(result);
 
-			std::cout << paramValue.data() << "\n";
+			if (buildStatus != CL_BUILD_SUCCESS)
+			{
+				std::string buildLog = {};
+				result               = GetBuildLog(program, device, buildLog);
+				OPENCL_RETURN_ON_ERROR(result);
+
+				std::cout << buildLog;
+			}
 		}
 	}
 	else

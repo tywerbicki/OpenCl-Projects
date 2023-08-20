@@ -41,7 +41,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="vfadd.cl">
+    <None Include="Kernels\vfadd.cl">
       <Filter>Kernels</Filter>
     </None>
   </ItemGroup>

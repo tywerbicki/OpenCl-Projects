@@ -14,6 +14,37 @@ namespace context
 {
 
 
+cl_int GetDevices(const cl_context context, std::vector<cl_device_id>& devices)
+{
+    cl_int  result   = CL_SUCCESS;
+	cl_uint nDevices = 0;
+
+    // Query number of devices associated with the context.
+	result = clGetContextInfo(
+		context,
+		CL_CONTEXT_NUM_DEVICES,
+		sizeof(nDevices),
+		&nDevices,
+		nullptr
+	);
+	OPENCL_RETURN_ON_ERROR(result);
+
+    devices.resize(nDevices);
+
+    // Query the devices associated with the context.
+	result = clGetContextInfo(
+		context,
+		CL_CONTEXT_DEVICES,
+		devices.size() * sizeof(cl_device_id),
+		devices.data(),
+		nullptr
+	);
+	OPENCL_PRINT_ON_ERROR(result);
+
+    return result;
+}
+
+
 cl_int GetAllAvailable(std::vector<cl_context>& contexts)
 {
 	cl_int                      result             = CL_SUCCESS;
