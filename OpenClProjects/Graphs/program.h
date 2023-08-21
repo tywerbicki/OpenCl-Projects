@@ -149,7 +149,7 @@ cl_int StoreBinaries(const cl_program program)
 	result = clGetProgramInfo(
 		program,
 		CL_PROGRAM_BINARIES,
-		binaryRawPtrs.size(),
+		binaryRawPtrs.size() * sizeof(unsigned char*),
 		binaryRawPtrs.data(),
 		nullptr
 	);
@@ -258,7 +258,6 @@ cl_int Build(const cl_context context, cl_program& program)
 
 	case CL_SUCCESS:
 	{
-		// Store program binaries here.
 		result = StoreBinaries(program);
 		OPENCL_RETURN_ON_ERROR(result);
 
