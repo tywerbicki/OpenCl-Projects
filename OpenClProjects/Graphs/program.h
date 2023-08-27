@@ -132,14 +132,14 @@ cl_int StoreBinaries(const cl_program program)
 	);
 	OPENCL_RETURN_ON_ERROR(result);
 
-	std::vector<std::vector<unsigned char>> binaries(binarySizes.size());
+	std::vector<std::vector<char>> binaries(binarySizes.size());
 
 	for (size_t i = 0; i < binaries.size(); i++)
 	{
 		binaries[i].resize(binarySizes[i]);
 	}
 
-	std::vector<unsigned char*> binaryRawPtrs(binaries.size());
+	std::vector<char*> binaryRawPtrs(binaries.size());
 
 	for (size_t i = 0; i < binaries.size(); i++)
 	{
@@ -149,7 +149,7 @@ cl_int StoreBinaries(const cl_program program)
 	result = clGetProgramInfo(
 		program,
 		CL_PROGRAM_BINARIES,
-		binaryRawPtrs.size() * sizeof(unsigned char*),
+		binaryRawPtrs.size() * sizeof(char*),
 		binaryRawPtrs.data(),
 		nullptr
 	);
@@ -163,39 +163,48 @@ cl_int StoreBinaries(const cl_program program)
 														   deviceVendor);
 		OPENCL_RETURN_ON_ERROR(result);
 
-		// Pretend that we generated a unique hash for the device.
+		// Pretend that we generated a unique identifier for the device.
 		// This could be done by hashing all of the device information.
 		const std::string deviceUniqueId = "QuadroP1000";
 
 		const auto clBinaryDir = clBinariesRoot / deviceVendor / deviceUniqueId;
 
+		//TODO: handle exceptions.
 		std::error_code ec;
-		if (!std::filesystem::exists(clBinaryDir, ec) && !ec)
-		{
-			std::filesystem::create_directories(clBinaryDir, ec);
-		}
+		std::filesystem::create_directories(clBinaryDir, ec);
 
 		if (ec)
 		{
-			std::cerr << ec.message();
-			return CL_SUCCESS;
+			std::cerr << "Failed to make directory "
+					  << clBinaryDir
+					  << " to store program binary: "
+					  << ec.message();
+			continue;
 		}
 
+		const auto clBinaryRelativePath = clBinaryDir / clBinariesFileName;
+
 		std::ofstream clBinaryOfStream(
-			clBinaryDir / clBinariesFileName,
+			clBinaryRelativePath,
 			std::ios_base::out | std::ios_base::binary | std::ios_base::trunc
 		);
 
 		if (!clBinaryOfStream.is_open())
 		{
-			std::cerr << "Failed to open program binary output stream for device: "
-					  << deviceUniqueId
+			std::cerr << "Failed to open program binary output stream: "
+					  << clBinaryRelativePath
 					  << "\n";
 			continue;
 		}
 
-		// TODO: handle exceptions.
-		clBinaryOfStream << binaries[i].data();
+		clBinaryOfStream.write(binaries[i].data(), binaries[i].size());
+
+		if (clBinaryOfStream.fail())
+		{
+			std::cerr << "Failed to write program binary to storage: "
+				      << clBinaryRelativePath
+					  << "\n";
+		}
 	}
 
 	return result;
@@ -222,8 +231,15 @@ cl_int Build(const cl_context context, cl_program& program)
 		}
 
 		std::ostringstream clSourceOsStream;
-		// TODO: handle exceptions.
 		clSourceOsStream << clSourceIfStream.rdbuf();
+
+		if (clSourceOsStream.fail())
+		{
+			std::cerr << "Failed to read OpenCL source text for source file: "
+					  << clSourceFileNames[i]
+					  << "\n";
+			return CL_BUILD_PROGRAM_FAILURE;
+		}
 
 		clSource[i] = std::move(clSourceOsStream.str());
 	}
