@@ -8,39 +8,39 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <system_error>
 #include <vector>
 
 #include "debug.h"
 #include "context.h"
+#include "device.h"
 
 
 namespace program
 {
 
 
-const std::string kernelsSourceDir     = "./KernelsSource/";
-const std::string kernelsBinaryRootDir = "./KernelsBinary/";
+const std::filesystem::path clSourceRoot   = "OpenCL Source";
+const std::filesystem::path clBinariesRoot = "OpenCL Binaries";
 
-constexpr size_t nKernels = 1;
+constexpr size_t nClSourceFiles = 1;
 
-const std::array<const std::string, nKernels> kernelFileNames
+const std::array<const std::string, nClSourceFiles> clSourceFileNames
 {
 	"vfadd.cl"
 };
 
-const std::string kernelBinarySuffix = ".clbin";
+// const std::string kernelBinarySuffix = ".clbin";
 
 #ifdef _DEBUG
 
-
-constexpr char buildOptions[] = "-cl-opt-disable -Werror -cl-std=CL2.0 -g";
-
+const std::string buildOptions       = "-cl-opt-disable -Werror -cl-std=CL2.0 -g";
+const std::string clBinariesFileName = "OpenClBinaries_Debug.cl.bin";
 
 #else
 
-
-constexpr char buildOptions[] = "-Werror -cl-std=CL2.0";
-
+const std::string buildOptions       = "-Werror -cl-std=CL2.0";
+const std::string clBinariesFileName = "ProgramBinaries_Release.cl.bin";
 
 #endif // _DEBUG
 
@@ -155,8 +155,48 @@ cl_int StoreBinaries(const cl_program program)
 	);
 	OPENCL_RETURN_ON_ERROR(result);
 
-	// Write binaries to disk here.
+	for (size_t i = 0; i < devices.size(); i++)
+	{
+		std::string deviceVendor = {};
+		result                   = device::QueryParamValue(devices[i],
+														   CL_DEVICE_VENDOR,
+														   deviceVendor);
+		OPENCL_RETURN_ON_ERROR(result);
 
+		// Pretend that we generated a unique hash for the device.
+		// This could be done by hashing all of the device information.
+		const std::string deviceUniqueId = "QuadroP1000";
+
+		const auto clBinaryDir = clBinariesRoot / deviceVendor / deviceUniqueId;
+
+		std::error_code ec;
+		if (!std::filesystem::exists(clBinaryDir, ec) && !ec)
+		{
+			std::filesystem::create_directories(clBinaryDir, ec);
+		}
+
+		if (ec)
+		{
+			std::cerr << ec.message();
+			return CL_SUCCESS;
+		}
+
+		std::ofstream clBinaryOfStream(
+			clBinaryDir / clBinariesFileName,
+			std::ios_base::out | std::ios_base::binary | std::ios_base::trunc
+		);
+
+		if (!clBinaryOfStream.is_open())
+		{
+			std::cerr << "Failed to open program binary output stream for device: "
+					  << deviceUniqueId
+					  << "\n";
+			continue;
+		}
+
+		// TODO: handle exceptions.
+		clBinaryOfStream << binaries[i].data();
+	}
 
 	return result;
 }
@@ -164,50 +204,46 @@ cl_int StoreBinaries(const cl_program program)
 
 cl_int Build(const cl_context context, cl_program& program)
 {
-	std::array<std::string, nKernels> kernelsSource = {};
+	// Check if we already have a binary for the program.
+	// TODO.
 
-	for (size_t i = 0; i < nKernels; i++)
+	std::array<std::string, nClSourceFiles> clSource;
+
+	for (size_t i = 0; i < nClSourceFiles; i++)
 	{
-		const std::string kernelRelPath = kernelsSourceDir + kernelFileNames[i];
+		std::ifstream clSourceIfStream(clSourceRoot / clSourceFileNames[i]);
 
-		std::ifstream kernelBinaryIfStream(kernelRelPath + kernelBinarySuffix);
-
-		// Check if we already have a binary for the kernel.
-		if (kernelBinaryIfStream.is_open())
+		if (!clSourceIfStream.is_open())
 		{
-
-		}
-
-		std::ifstream kernelIfStream(kernelRelPath);
-
-		if (!kernelIfStream.is_open())
-		{
-			std::cerr << "Failed to open kernel: " << kernelFileNames[i] << "\n";
+			std::cerr << "Failed to open OpenCL source text input stream for source file: "
+					  << clSourceFileNames[i]
+					  << "\n";
 			return CL_BUILD_PROGRAM_FAILURE;
 		}
 
-		std::ostringstream kernelOsStream;
-		kernelOsStream << kernelIfStream.rdbuf();
+		std::ostringstream clSourceOsStream;
+		// TODO: handle exceptions.
+		clSourceOsStream << clSourceIfStream.rdbuf();
 
-		kernelsSource[i] = std::move(kernelOsStream.str());
+		clSource[i] = std::move(clSourceOsStream.str());
 	}
 
-	const char* kernelsSourceCStr[nKernels];
-	size_t      kernelsSourceLen[nKernels];
+	const char* clSourceCStrs[nClSourceFiles];
+	size_t      clSourceSizes[nClSourceFiles];
 
-	for (size_t i = 0; i < nKernels; i++)
+	for (size_t i = 0; i < nClSourceFiles; i++)
 	{
-		kernelsSourceCStr[i] = kernelsSource[i].c_str();
-		kernelsSourceLen[i]  = kernelsSource[i].size();
+		clSourceCStrs[i] = clSource[i].c_str();
+		clSourceSizes[i] = clSource[i].size();
 	}
 
 	cl_int result = CL_SUCCESS;
 
 	program = clCreateProgramWithSource(
 		context,
-		nKernels,
-		kernelsSourceCStr,
-		kernelsSourceLen,
+		nClSourceFiles,
+		clSourceCStrs,
+		clSourceSizes,
 		&result
 	);
 	OPENCL_RETURN_ON_ERROR(result);
@@ -220,7 +256,7 @@ cl_int Build(const cl_context context, cl_program& program)
 		program,
 		static_cast<cl_uint>(devices.size()),
 		devices.data(),
-		buildOptions,
+		buildOptions.c_str(),
 		nullptr,
 		nullptr
 	);

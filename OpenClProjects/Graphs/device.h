@@ -100,6 +100,30 @@ cl_int QueryParamValue(
 }
 
 
+cl_int QueryParamValue(
+    const cl_device_id   device,
+    const cl_device_info paramName,
+    std::string&         paramValue)
+{
+    cl_int            result        = CL_SUCCESS;
+    std::vector<char> paramValueVec = {};
+
+    result = QueryParamValue(
+        device,
+        paramName,
+        paramValueVec
+    );
+    OPENCL_RETURN_ON_ERROR(result);
+
+    paramValue.assign(
+        paramValueVec.data(),
+        paramValueVec.size() - 1
+    );
+
+    return result;
+}
+
+
 cl_int DisplayGeneralInfo(const cl_device_id device)
 {
     const std::array<const cl_device_info, 9> paramNames
