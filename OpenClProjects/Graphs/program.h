@@ -169,16 +169,16 @@ cl_int StoreBinaries(const cl_program program)
 
 		const auto clBinaryDir = clBinariesRoot / deviceVendor / deviceUniqueId;
 
-		//TODO: handle exceptions.
-		std::error_code ec;
-		std::filesystem::create_directories(clBinaryDir, ec);
-
-		if (ec)
+		try
+		{
+			std::filesystem::create_directories(clBinaryDir);
+		}
+		catch (const std::exception& e)
 		{
 			std::cerr << "Failed to make directory "
 					  << clBinaryDir
 					  << " to store program binary: "
-					  << ec.message();
+					  << e.what();
 			continue;
 		}
 
@@ -213,7 +213,13 @@ cl_int StoreBinaries(const cl_program program)
 
 cl_int Build(const cl_context context, cl_program& program)
 {
-	// Check if we already have a binary for the program.
+	cl_int                    result  = CL_SUCCESS;
+	std::vector<cl_device_id> devices = {};
+
+	result = GetDevices(program, devices);
+	OPENCL_RETURN_ON_ERROR(result);
+
+	// Check if we already have binaries for the program.
 	// TODO.
 
 	std::array<std::string, nClSourceFiles> clSource;
@@ -252,8 +258,6 @@ cl_int Build(const cl_context context, cl_program& program)
 		clSourceCStrs[i] = clSource[i].c_str();
 		clSourceSizes[i] = clSource[i].size();
 	}
-
-	cl_int result = CL_SUCCESS;
 
 	program = clCreateProgramWithSource(
 		context,
