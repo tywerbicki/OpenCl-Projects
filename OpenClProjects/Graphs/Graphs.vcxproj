@@ -138,6 +138,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="build.h" />
     <ClInclude Include="context.h" />
     <ClInclude Include="debug.h" />
     <ClInclude Include="device.h" />

@@ -3,10 +3,12 @@
 #include <CL/cl.h>
 
 #include <array>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
 
+#include "build.h"
 #include "debug.h"
 #include "required.h"
 
@@ -191,6 +193,36 @@ cl_int IsConformant(const cl_device_id device, bool& isConformant)
     }
 
     isConformant = true;
+    return result;
+}
+
+
+cl_int GetClBinaryDir(const cl_device_id device, std::filesystem::path& clBinaryDir)
+{
+    cl_int      result       = CL_SUCCESS;
+    std::string deviceVendor = {};
+
+    result = QueryParamValue(
+        device,
+        CL_DEVICE_VENDOR,
+        deviceVendor
+    );
+    OPENCL_RETURN_ON_ERROR(result);
+   
+    // Pretend that we generated a unique identifier for the device.
+    // This could be done by hashing all of the device information.
+    const std::string deviceUniqueId = "QuadroP1000";
+
+    try
+    {
+        clBinaryDir = build::clBinariesRoot / deviceVendor / deviceUniqueId;
+    }
+    catch (const std::bad_alloc&)
+    {
+        result = CL_OUT_OF_HOST_MEMORY;
+    }
+    OPENCL_PRINT_ON_ERROR(result);
+
     return result;
 }
 

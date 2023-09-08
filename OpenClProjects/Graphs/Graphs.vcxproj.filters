@@ -14,6 +14,9 @@
     <Filter Include="Requirements">
       <UniqueIdentifier>{f15f1c6b-d492-4411-9aae-e929b2c1366e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{bb8c0a0d-f115-4be2-8ddf-b8da9b8408a5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -38,6 +41,9 @@
     </ClInclude>
     <ClInclude Include="required.h">
       <Filter>Requirements</Filter>
+    </ClInclude>
+    <ClInclude Include="build.h">
+      <Filter>Resources</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
