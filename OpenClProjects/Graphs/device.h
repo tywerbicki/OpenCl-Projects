@@ -197,7 +197,21 @@ cl_int IsConformant(const cl_device_id device, bool& isConformant)
 }
 
 
-cl_int GetClBinaryDir(const cl_device_id device, std::filesystem::path& clBinaryDir)
+cl_int QueryUniqueId(const cl_device_id device, std::string& uniqueId)
+{
+    cl_int result = CL_SUCCESS;
+
+    // Pretend that we generated a unique identifier for the device.
+    // This could be done by hashing some device characteristics.
+    uniqueId = "QuadroP1000";
+
+    return result;
+}
+
+
+cl_int GetClBinaryLoc(const cl_device_id     device,
+                      const bool             directoryOnly,
+                      std::filesystem::path& clBinaryLoc)
 {
     cl_int      result       = CL_SUCCESS;
     std::string deviceVendor = {};
@@ -208,14 +222,21 @@ cl_int GetClBinaryDir(const cl_device_id device, std::filesystem::path& clBinary
         deviceVendor
     );
     OPENCL_RETURN_ON_ERROR(result);
-   
-    // Pretend that we generated a unique identifier for the device.
-    // This could be done by hashing all of the device information.
-    const std::string deviceUniqueId = "QuadroP1000";
+
+    std::string uniqueId = {};
+    result               = QueryUniqueId(device, uniqueId);
+    OPENCL_RETURN_ON_ERROR(result);
 
     try
     {
-        clBinaryDir = build::clBinariesRoot / deviceVendor / deviceUniqueId;
+        if (directoryOnly)
+        {
+            clBinaryLoc = build::clBinariesRoot / deviceVendor / uniqueId;
+        }
+        else
+        {
+            clBinaryLoc = build::clBinariesRoot / deviceVendor / uniqueId / build::clBinariesFileName;
+        }
     }
     catch (const std::bad_alloc&)
     {

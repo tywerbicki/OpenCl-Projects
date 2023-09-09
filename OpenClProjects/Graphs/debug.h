@@ -18,6 +18,13 @@
                                        }
 
 
+#define OPENCL_BREAK_ON_ERROR(result) if ((result) != CL_SUCCESS) \
+                                      { \
+                                          debug::_OpenClDisplayError(result, __FILE__, __LINE__); \
+                                          break; \
+                                      }
+
+
 #else
 
 
@@ -25,6 +32,9 @@
 
 
 #define OPENCL_RETURN_ON_ERROR(result) if ((result) != CL_SUCCESS) return result
+
+
+#define OPENCL_BREAK_ON_ERROR(result) if ((result) != CL_SUCCESS) break
 
 
 #endif // _DEBUG

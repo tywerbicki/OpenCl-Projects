@@ -134,10 +134,10 @@ cl_int StoreBinaries(const cl_program program)
 	for (size_t i = 0; i < devices.size(); i++)
 	{
 		std::filesystem::path clBinaryDir = {};
-		result                            = device::GetClBinaryDir(devices[i],
+		result                            = device::GetClBinaryLoc(devices[i],
+																   true,
 																   clBinaryDir);
-		// TODO: continue rather than return.
-		OPENCL_RETURN_ON_ERROR(result);
+		OPENCL_BREAK_ON_ERROR(result);
 
 		try
 		{
@@ -149,10 +149,19 @@ cl_int StoreBinaries(const cl_program program)
 					  << clBinaryDir
 					  << " to store program binary: "
 					  << e.what();
-			continue;
+			break;
 		}
 
-		const auto clBinaryPath = clBinaryDir / build::clBinariesFileName;
+		std::filesystem::path clBinaryPath;
+		try
+		{
+			clBinaryPath = clBinaryDir / build::clBinariesFileName;
+		}
+		catch (const std::bad_alloc&)
+		{
+			result = CL_OUT_OF_HOST_MEMORY;
+		}
+		OPENCL_BREAK_ON_ERROR(result);
 
 		std::ofstream clBinaryOfStream(
 			clBinaryPath,
@@ -164,7 +173,7 @@ cl_int StoreBinaries(const cl_program program)
 			std::cerr << "Failed to open program binary output stream: "
 					  << clBinaryPath
 					  << "\n";
-			continue;
+			break;
 		}
 
 		clBinaryOfStream.write(binaries[i].data(), binaries[i].size());
@@ -174,6 +183,7 @@ cl_int StoreBinaries(const cl_program program)
 			std::cerr << "Failed to write program binary to storage: "
 				      << clBinaryPath
 					  << "\n";
+			break;
 		}
 	}
 
@@ -184,13 +194,38 @@ cl_int StoreBinaries(const cl_program program)
 cl_int Build(const cl_context context, cl_program& program)
 {
 	cl_int                    result  = CL_SUCCESS;
-	// std::vector<cl_device_id> devices = {};
-	// 
-	// result = GetDevices(program, devices);
-	// OPENCL_RETURN_ON_ERROR(result);
+	std::vector<cl_device_id> devices = {};
+
+	result = context::GetDevices(context, devices);
+	OPENCL_RETURN_ON_ERROR(result);
 
 	// Check if we already have binaries for the program.
 	// TODO.
+	std::vector<std::string> clBinaries(devices.size());
+
+	for (size_t i = 0; i < devices.size(); i++)
+	{
+		std::filesystem::path clBinaryPath;
+		std::error_code       ec;
+
+		result = device::GetClBinaryLoc(
+			devices[i],
+			false,
+			clBinaryPath
+		);
+		OPENCL_RETURN_ON_ERROR(result);
+
+		const bool clBinaryExists = std::filesystem::exists(clBinaryPath, ec);
+
+		if (!ec && clBinaryExists)
+		{
+			// Read it into vector of strings.
+		}
+		else
+		{
+			// Indicate we need to compile from source and break the loop.
+		}
+	}
 
 	std::array<std::string, build::nClSourceFiles> clSource;
 
@@ -236,10 +271,6 @@ cl_int Build(const cl_context context, cl_program& program)
 		clSourceSizes,
 		&result
 	);
-	OPENCL_RETURN_ON_ERROR(result);
-
-	std::vector<cl_device_id> devices = {};
-	result                            = context::GetDevices(context, devices);
 	OPENCL_RETURN_ON_ERROR(result);
 
 	result = clBuildProgram(
