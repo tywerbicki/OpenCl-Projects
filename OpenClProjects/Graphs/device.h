@@ -209,9 +209,7 @@ cl_int QueryUniqueId(const cl_device_id device, std::string& uniqueId)
 }
 
 
-cl_int GetClBinaryLoc(const cl_device_id     device,
-                      const bool             directoryOnly,
-                      std::filesystem::path& clBinaryLoc)
+cl_int GetClBinaryDir(const cl_device_id device, std::filesystem::path& clBinaryDir)
 {
     cl_int      result       = CL_SUCCESS;
     std::string deviceVendor = {};
@@ -227,22 +225,20 @@ cl_int GetClBinaryLoc(const cl_device_id     device,
     result               = QueryUniqueId(device, uniqueId);
     OPENCL_RETURN_ON_ERROR(result);
 
-    try
-    {
-        if (directoryOnly)
-        {
-            clBinaryLoc = build::clBinariesRoot / deviceVendor / uniqueId;
-        }
-        else
-        {
-            clBinaryLoc = build::clBinariesRoot / deviceVendor / uniqueId / build::clBinariesFileName;
-        }
-    }
-    catch (const std::bad_alloc&)
-    {
-        result = CL_OUT_OF_HOST_MEMORY;
-    }
-    OPENCL_PRINT_ON_ERROR(result);
+    clBinaryDir = build::clBinariesRoot / deviceVendor / uniqueId;
+
+    return result;
+}
+
+
+cl_int GetClBinaryPath(const cl_device_id device, std::filesystem::path& clBinaryPath)
+{
+    cl_int result = CL_SUCCESS;
+
+    result = GetClBinaryDir(device, clBinaryPath);
+    OPENCL_RETURN_ON_ERROR(result);
+
+    clBinaryPath /= build::clBinariesFileName;
 
     return result;
 }
