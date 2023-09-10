@@ -17,27 +17,27 @@ namespace context
 cl_int GetDevices(const cl_context context, std::vector<cl_device_id>& devices)
 {
     cl_int  result   = CL_SUCCESS;
-	cl_uint nDevices = 0;
+    cl_uint nDevices = 0;
 
-	result = clGetContextInfo(
-		context,
-		CL_CONTEXT_NUM_DEVICES,
-		sizeof(nDevices),
-		&nDevices,
-		nullptr
-	);
-	OPENCL_RETURN_ON_ERROR(result);
+    result = clGetContextInfo(
+        context,
+        CL_CONTEXT_NUM_DEVICES,
+        sizeof(nDevices),
+        &nDevices,
+        nullptr
+    );
+    OPENCL_RETURN_ON_ERROR(result);
 
     devices.resize(nDevices);
 
-	result = clGetContextInfo(
-		context,
-		CL_CONTEXT_DEVICES,
-		devices.size() * sizeof(cl_device_id),
-		devices.data(),
-		nullptr
-	);
-	OPENCL_PRINT_ON_ERROR(result);
+    result = clGetContextInfo(
+        context,
+        CL_CONTEXT_DEVICES,
+        devices.size() * sizeof(cl_device_id),
+        devices.data(),
+        nullptr
+    );
+    OPENCL_PRINT_ON_ERROR(result);
 
     return result;
 }
@@ -45,10 +45,10 @@ cl_int GetDevices(const cl_context context, std::vector<cl_device_id>& devices)
 
 cl_int GetAllAvailable(std::vector<cl_context>& contexts)
 {
-	cl_int                      result             = CL_SUCCESS;
-	std::vector<cl_platform_id> availablePlatforms = {};
+    cl_int                      result             = CL_SUCCESS;
+    std::vector<cl_platform_id> availablePlatforms = {};
 
-	result = platform::GetAllAvailable(availablePlatforms);
+    result = platform::GetAllAvailable(availablePlatforms);
     OPENCL_RETURN_ON_ERROR(result);
 
     for (const auto platform : availablePlatforms)

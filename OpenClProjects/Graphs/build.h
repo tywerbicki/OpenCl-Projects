@@ -16,7 +16,7 @@ constexpr size_t nClSourceFiles = 1;
 
 const std::array<const std::string, nClSourceFiles> clSourceFileNames
 {
-	"vfadd.cl"
+    "vfadd.cl"
 };
 
 #ifdef _DEBUG
