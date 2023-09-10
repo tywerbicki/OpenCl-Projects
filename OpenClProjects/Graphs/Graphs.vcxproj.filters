@@ -8,14 +8,14 @@
     <Filter Include="Utils">
       <UniqueIdentifier>{eb08f88b-d797-4fd6-b79f-6caece6a244c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Kernels">
-      <UniqueIdentifier>{701bd205-1e02-4935-b90b-e83c9cc9dbaa}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Requirements">
       <UniqueIdentifier>{f15f1c6b-d492-4411-9aae-e929b2c1366e}</UniqueIdentifier>
     </Filter>
     <Filter Include="Resources">
       <UniqueIdentifier>{bb8c0a0d-f115-4be2-8ddf-b8da9b8408a5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Kernels">
+      <UniqueIdentifier>{aa09ff8f-e9a5-45a8-a895-035c941dd8cc}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -47,7 +47,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="KernelsSource\vfadd.cl">
+    <None Include="OpenCL Source\vfadd.cl">
       <Filter>Kernels</Filter>
     </None>
   </ItemGroup>
