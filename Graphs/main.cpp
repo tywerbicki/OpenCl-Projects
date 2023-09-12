@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 
+#include "build.h"
 #include "context.h"
 #include "debug.h"
 #include "program.h"
@@ -28,7 +29,15 @@ int main()
 
     for (size_t i = 0; i < contexts.size(); i++)
     {
-        result = program::Build(contexts[i], programs[i]);
+        result = program::Build(
+            contexts[i],
+            build::graphs::clBinaryRoot,
+            build::graphs::clBinaryName,
+            build::graphs::clSourceRoot,
+            build::graphs::clSourceNames,
+            build::graphs::options,
+            programs[i]
+        );
         OPENCL_RETURN_ON_ERROR(result);
     }
 }

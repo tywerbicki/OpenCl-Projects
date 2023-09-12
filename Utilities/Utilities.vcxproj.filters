@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="OpenCL Utilities">
+      <UniqueIdentifier>{09df81ed-35df-4ca7-8aff-4a79143a05b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{8094bbd5-707e-4d51-952b-cb0354b5c41c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Requirements">
+      <UniqueIdentifier>{6f7698cd-0872-41e8-91c0-6ec7b0aafa06}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="context.h">
+      <Filter>OpenCL Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="debug.h">
+      <Filter>OpenCL Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="device.h">
+      <Filter>OpenCL Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="platform.h">
+      <Filter>OpenCL Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="program.h">
+      <Filter>OpenCL Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="required.h">
+      <Filter>Requirements</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

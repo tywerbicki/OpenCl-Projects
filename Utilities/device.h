@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 
-#include "build.h"
 #include "debug.h"
 #include "required.h"
 
@@ -209,7 +208,10 @@ cl_int QueryUniqueId(const cl_device_id device, std::string& uniqueId)
 }
 
 
-cl_int GetClBinaryDir(const cl_device_id device, std::filesystem::path& clBinaryDir)
+cl_int GetClBinaryDir(
+    const std::filesystem::path& clBinaryRoot,
+    const cl_device_id           device,
+    std::filesystem::path&       clBinaryDir)
 {
     cl_int      result       = CL_SUCCESS;
     std::string deviceVendor = {};
@@ -225,20 +227,24 @@ cl_int GetClBinaryDir(const cl_device_id device, std::filesystem::path& clBinary
     result               = QueryUniqueId(device, uniqueId);
     OPENCL_RETURN_ON_ERROR(result);
 
-    clBinaryDir = build::clBinariesRoot / deviceVendor / uniqueId;
+    clBinaryDir = clBinaryRoot / deviceVendor / uniqueId;
 
     return result;
 }
 
 
-cl_int GetClBinaryPath(const cl_device_id device, std::filesystem::path& clBinaryPath)
+cl_int GetClBinaryPath(
+    const std::filesystem::path& clBinaryRoot,
+    const cl_device_id           device,
+    const std::string&           clBinaryName,
+    std::filesystem::path&       clBinaryPath)
 {
     cl_int result = CL_SUCCESS;
 
-    result = GetClBinaryDir(device, clBinaryPath);
+    result = GetClBinaryDir(clBinaryRoot, device, clBinaryPath);
     OPENCL_RETURN_ON_ERROR(result);
 
-    clBinaryPath /= build::clBinariesFileName;
+    clBinaryPath /= clBinaryName;
 
     return result;
 }

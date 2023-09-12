@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <span>
 #include <sstream>
 #include <string>
 #include <system_error>
@@ -54,7 +55,11 @@ cl_int GetDevices(const cl_program program, std::vector<cl_device_id>& devices)
 }
 
 
-cl_int CreateFromBinary(const cl_context context, cl_program& program)
+cl_int CreateFromBinary(
+    const cl_context             context,
+    const std::filesystem::path& clBinaryRoot,
+    const std::string&           clBinaryName,
+    cl_program&                  program)
 {
     cl_int                    result  = CL_SUCCESS;
     std::vector<cl_device_id> devices = {};
@@ -70,7 +75,7 @@ cl_int CreateFromBinary(const cl_context context, cl_program& program)
         std::filesystem::path clBinaryPath;
         std::error_code       ec;
 
-        result = device::GetClBinaryPath(devices[i], clBinaryPath);
+        result = device::GetClBinaryPath(clBinaryRoot, devices[i], clBinaryName, clBinaryPath);
         OPENCL_RETURN_ON_ERROR(result);
 
         const bool clBinaryExists = std::filesystem::exists(clBinaryPath, ec);
@@ -191,18 +196,25 @@ cl_int CreateFromBinary(const cl_context context, cl_program& program)
 }
 
 
-cl_int CreateFromSource(const cl_context context, cl_program& program)
+// TODO: remove sourceNames as a parameter and instead iterate clSourceRoot for names.
+cl_int CreateFromSource(
+    const cl_context                   context,
+    const std::filesystem::path&       clSourceRoot,
+    const std::span<const std::string> clSourceNames,
+    cl_program&                        program)
 {
-    std::array<std::string, build::nClSourceFiles> clSource;
+    std::vector<std::string> clSource(     clSourceNames.size());
+    std::vector<const char*> clSourceCStrs(clSourceNames.size());
+    std::vector<size_t>      clSourceSizes(clSourceNames.size());
 
-    for (size_t i = 0; i < build::nClSourceFiles; i++)
+    for (size_t i = 0; i < clSourceNames.size(); i++)
     {
-        std::ifstream clSourceIfStream(build::clSourceRoot / build::clSourceFileNames[i]);
+        std::ifstream clSourceIfStream(clSourceRoot / clSourceNames[i]);
 
         if (!clSourceIfStream.is_open())
         {
             std::cerr << "Failed to open OpenCL source text input stream for source file: "
-                      << build::clSourceFileNames[i]
+                      << clSourceNames[i]
                       << "\n";
             return CL_BUILD_PROGRAM_FAILURE;
         }
@@ -213,19 +225,12 @@ cl_int CreateFromSource(const cl_context context, cl_program& program)
         if (clSourceOsStream.fail())
         {
             std::cerr << "Failed to read OpenCL source text for source file: "
-                      << build::clSourceFileNames[i]
+                      << clSourceNames[i]
                       << "\n";
             return CL_BUILD_PROGRAM_FAILURE;
         }
 
-        clSource[i] = std::move(clSourceOsStream.str());
-    }
-
-    std::array<const char*, build::nClSourceFiles> clSourceCStrs = {};
-    std::array<size_t, build::nClSourceFiles>      clSourceSizes = {};
-
-    for (size_t i = 0; i < build::nClSourceFiles; i++)
-    {
+        clSource[i]      = std::move(clSourceOsStream.str());
         clSourceCStrs[i] = clSource[i].c_str();
         clSourceSizes[i] = clSource[i].size();
     }
@@ -300,7 +305,10 @@ cl_int GetBuildLog(
 }
 
 
-cl_int StoreBinaries(const cl_program program)
+cl_int StoreBinaries(
+    const cl_program             program,
+    const std::filesystem::path& clBinaryRoot,
+    const std::string&           clBinaryName)
 {
     cl_int                    result  = CL_SUCCESS;
     std::vector<cl_device_id> devices = {};
@@ -342,7 +350,7 @@ cl_int StoreBinaries(const cl_program program)
     {
         std::filesystem::path clBinaryDir;
 
-        result = device::GetClBinaryDir(devices[i], clBinaryDir);
+        result = device::GetClBinaryDir(clBinaryRoot, devices[i], clBinaryDir);
         OPENCL_RETURN_ON_ERROR(result);
 
         try
@@ -353,7 +361,9 @@ cl_int StoreBinaries(const cl_program program)
         {
             std::cerr << "Failed to make directory "
                       << clBinaryDir
-                      << " to store program binary: "
+                      << " to store program binary "
+                      << clBinaryName
+                      << ": "
                       << e.what()
                       << " (error code: "
                       << e.code()
@@ -361,7 +371,7 @@ cl_int StoreBinaries(const cl_program program)
             break;
         }
 
-        const std::filesystem::path clBinaryPath = clBinaryDir / build::clBinariesFileName;
+        const std::filesystem::path clBinaryPath = clBinaryDir / clBinaryName;
 
         std::ofstream clBinaryOfStream(
             clBinaryPath,
@@ -410,31 +420,39 @@ cl_int StoreBinaries(const cl_program program)
 }
 
 
-cl_int Build(const cl_context context, cl_program& program)
+cl_int Build(
+    const cl_context                   context,
+    const std::filesystem::path&       clBinaryRoot,
+    const std::string&                 clBinaryName,
+    const std::filesystem::path&       clSourceRoot,
+    const std::span<const std::string> clSourceNames,
+    const std::string&                 clBuildOptions,
+    cl_program&                        program)
 {
     cl_int result                   = CL_SUCCESS;
     bool   programCreatedFromBinary = true;
 
-    result = CreateFromBinary(context, program);
+    result = CreateFromBinary(context, clBinaryRoot, clBinaryName, program);
     OPENCL_RETURN_ON_ERROR(result);
 
-    if (!program)
+    if (program == nullptr)
     {
-        result = CreateFromSource(context, program);
+        result = CreateFromSource(context, clSourceRoot, clSourceNames, program);
         OPENCL_RETURN_ON_ERROR(result);
 
         programCreatedFromBinary = false;
     }
 
     std::vector<cl_device_id> devices = {};
-    result                            = context::GetDevices(context, devices);
+
+    result = context::GetDevices(context, devices);
     OPENCL_RETURN_ON_ERROR(result);
 
     result = clBuildProgram(
         program,
         static_cast<cl_uint>(devices.size()),
         devices.data(),
-        build::options.c_str(),
+        clBuildOptions.c_str(),
         nullptr,
         nullptr
     );
@@ -460,7 +478,9 @@ cl_int Build(const cl_context context, cl_program& program)
             if (buildStatus != CL_BUILD_SUCCESS)
             {
                 std::string buildLog = {};
-                result               = GetBuildLog(program, device, buildLog);
+
+                // TODO: add message prefacing build log.
+                result = GetBuildLog(program, device, buildLog);
                 OPENCL_RETURN_ON_ERROR(result);
 
                 std::cout << buildLog;
@@ -484,7 +504,7 @@ cl_int Build(const cl_context context, cl_program& program)
 
         if (!programCreatedFromBinary)
         {
-            result = StoreBinaries(program);
+            result = StoreBinaries(program, clBinaryRoot, clBinaryName);
             OPENCL_RETURN_ON_ERROR(result);
         }
 

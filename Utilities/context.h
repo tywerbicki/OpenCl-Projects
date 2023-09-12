@@ -53,12 +53,12 @@ cl_int GetAllAvailable(std::vector<cl_context>& contexts)
 
     for (const auto platform : availablePlatforms)
     {
-        #ifdef _DEBUG
+#ifdef _DEBUG
 
         result = platform::DisplayInfo(platform);
         OPENCL_RETURN_ON_ERROR(result);
 
-        #endif // _DEBUG
+#endif // _DEBUG
 
         bool platformIsConformant = false;
         result                    = platform::IsConformant(platform, platformIsConformant);
@@ -74,12 +74,12 @@ cl_int GetAllAvailable(std::vector<cl_context>& contexts)
 
             for (const auto device : availableDevices)
             {
-                #ifdef _DEBUG
+#ifdef _DEBUG
 
                 result = device::DisplayGeneralInfo(device);
                 OPENCL_RETURN_ON_ERROR(result);
 
-                #endif // _DEBUG
+#endif // _DEBUG
 
                 bool deviceIsConformant = false;
                 result                  = device::IsConformant(device, deviceIsConformant);
