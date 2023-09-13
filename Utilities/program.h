@@ -195,26 +195,39 @@ cl_int CreateFromBinary(
     return result;
 }
 
-
-// TODO: remove sourceNames as a parameter and instead iterate clSourceRoot for names.
+//TODO: continue support for reading source from dir and fix error message.
 cl_int CreateFromSource(
-    const cl_context                   context,
-    const std::filesystem::path&       clSourceRoot,
-    const std::span<const std::string> clSourceNames,
-    cl_program&                        program)
+    const cl_context             context,
+    const std::filesystem::path& clSourceRoot,
+    cl_program&                  program)
 {
-    std::vector<std::string> clSource(     clSourceNames.size());
-    std::vector<const char*> clSourceCStrs(clSourceNames.size());
-    std::vector<size_t>      clSourceSizes(clSourceNames.size());
+    std::error_code                           ec;
+    const std::filesystem::directory_iterator clSourceRootDirIter(clSourceRoot, ec);
 
-    for (size_t i = 0; i < clSourceNames.size(); i++)
+    if (ec)
     {
-        std::ifstream clSourceIfStream(clSourceRoot / clSourceNames[i]);
+        std::cerr << "Failed to construct directory iterator for "
+                  << clSourceRoot
+                  << ": "
+                  << ec.message()
+                  << " (error code: "
+                  << ec.value()
+                  << ")\n";
+        return CL_BUILD_PROGRAM_FAILURE;
+    }
+
+    std::vector<std::string> clSource;
+    std::vector<const char*> clSourceCStrs;
+    std::vector<size_t>      clSourceSizes;
+
+    for (const auto& clSourceName : clSourceRootDirIter)
+    {
+        std::ifstream clSourceIfStream(clSourceRoot / clSourceName.path());
 
         if (!clSourceIfStream.is_open())
         {
             std::cerr << "Failed to open OpenCL source text input stream for source file: "
-                      << clSourceNames[i]
+                      << clSourceName.path()
                       << "\n";
             return CL_BUILD_PROGRAM_FAILURE;
         }
@@ -225,14 +238,24 @@ cl_int CreateFromSource(
         if (clSourceOsStream.fail())
         {
             std::cerr << "Failed to read OpenCL source text for source file: "
-                      << clSourceNames[i]
+                      << clSourceName.path()
                       << "\n";
             return CL_BUILD_PROGRAM_FAILURE;
         }
 
-        clSource[i]      = std::move(clSourceOsStream.str());
-        clSourceCStrs[i] = clSource[i].c_str();
-        clSourceSizes[i] = clSource[i].size();
+        clSource.push_back(std::move(clSourceOsStream.str()));
+        clSourceCStrs.push_back(clSource.back().c_str());
+        clSourceSizes.push_back(clSource.back().size());
+
+#ifdef _DEBUG
+
+        std::cout << "Program "
+                  << program
+                  << " added source file: "
+                  << clSourceRoot / clSourceName.path()
+                  << "\n";
+
+#endif // _DEBUG
     }
 
     cl_int result = CL_SUCCESS;
@@ -437,7 +460,7 @@ cl_int Build(
 
     if (program == nullptr)
     {
-        result = CreateFromSource(context, clSourceRoot, clSourceNames, program);
+        result = CreateFromSource(context, clSourceRoot, program);
         OPENCL_RETURN_ON_ERROR(result);
 
         programCreatedFromBinary = false;
@@ -477,13 +500,18 @@ cl_int Build(
 
             if (buildStatus != CL_BUILD_SUCCESS)
             {
+                std::cerr << "Failed to build program "
+                          << program
+                          << " for device "
+                          << device
+                          << ":\n";
+
                 std::string buildLog = {};
 
-                // TODO: add message prefacing build log.
                 result = GetBuildLog(program, device, buildLog);
                 OPENCL_RETURN_ON_ERROR(result);
 
-                std::cout << buildLog;
+                std::cerr << buildLog;
             }
         }
 
@@ -502,7 +530,7 @@ cl_int Build(
 
 #endif // _DEBUG
 
-        if (!programCreatedFromBinary)
+        if (programCreatedFromBinary == false)
         {
             result = StoreBinaries(program, clBinaryRoot, clBinaryName);
             OPENCL_RETURN_ON_ERROR(result);

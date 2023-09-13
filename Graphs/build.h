@@ -13,7 +13,7 @@ namespace graphs
 {
 
 
-const std::filesystem::path clSourceRoot = "OpenCL Source";
+const std::filesystem::path clSourceRoot = std::filesystem::current_path() / "OpenCL Source";
 const std::filesystem::path clBinaryRoot = "OpenCL Binaries";
 
 const std::array<const std::string, 1> clSourceNames
