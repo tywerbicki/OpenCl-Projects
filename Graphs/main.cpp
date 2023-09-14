@@ -34,7 +34,6 @@ int main()
             build::graphs::clBinaryRoot,
             build::graphs::clBinaryName,
             build::graphs::clSourceRoot,
-            build::graphs::clSourceNames,
             build::graphs::options,
             programs[i]
         );

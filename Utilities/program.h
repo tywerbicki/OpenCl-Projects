@@ -6,8 +6,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <span>
 #include <sstream>
+#include <stdint.h>
 #include <string>
 #include <system_error>
 #include <vector>
@@ -68,7 +68,7 @@ cl_int CreateFromBinary(
     OPENCL_RETURN_ON_ERROR(result);
 
     std::vector<std::vector<unsigned char>> clBinaries(devices.size());
-    unsigned int nClBinariesAcquired = 0;
+    uint32_t nClBinariesAcquired = 0;
 
     for (size_t i = 0; i < devices.size(); i++)
     {
@@ -123,9 +123,30 @@ cl_int CreateFromBinary(
             }
 
             nClBinariesAcquired++;
+
+#ifdef _DEBUG
+
+            std::cout << "Context "
+                      << context
+                      << " added binary file: "
+                      << clBinaryPath
+                      << "\n";
+
+#endif // _DEBUG
+
         }
         else
         {
+#ifdef _DEBUG
+
+            std::cout << "Must create program for context "
+                      << context
+                      << " from source: "
+                      << clBinaryPath
+                      << " does not exist.\n";
+
+#endif // _DEBUG
+
             break;
         }
     }
@@ -195,7 +216,7 @@ cl_int CreateFromBinary(
     return result;
 }
 
-//TODO: continue support for reading source from dir and fix error message.
+
 cl_int CreateFromSource(
     const cl_context             context,
     const std::filesystem::path& clSourceRoot,
@@ -249,8 +270,8 @@ cl_int CreateFromSource(
 
 #ifdef _DEBUG
 
-        std::cout << "Program "
-                  << program
+        std::cout << "Context "
+                  << context
                   << " added source file: "
                   << clSourceRoot / clSourceName.path()
                   << "\n";
@@ -448,7 +469,6 @@ cl_int Build(
     const std::filesystem::path&       clBinaryRoot,
     const std::string&                 clBinaryName,
     const std::filesystem::path&       clSourceRoot,
-    const std::span<const std::string> clSourceNames,
     const std::string&                 clBuildOptions,
     cl_program&                        program)
 {

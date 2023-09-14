@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <filesystem>
 #include <string>
 
@@ -13,23 +12,18 @@ namespace graphs
 {
 
 
-const std::filesystem::path clSourceRoot = std::filesystem::current_path() / "OpenCL Source";
-const std::filesystem::path clBinaryRoot = "OpenCL Binaries";
-
-const std::array<const std::string, 1> clSourceNames
-{
-    "vfadd.cl"
-};
+inline extern const std::filesystem::path clSourceRoot = std::filesystem::current_path() / "OpenCL Source";
+inline extern const std::filesystem::path clBinaryRoot = std::filesystem::current_path() / "OpenCL Binaries";
 
 #ifdef _DEBUG
 
-const std::string options      = "-D DEBUG -cl-opt-disable -Werror -cl-std=CL2.0 -g";
-const std::string clBinaryName = "graphs_OpenClBinary_Debug.cl.bin";
+inline extern const std::string options      = "-D DEBUG -cl-opt-disable -Werror -cl-std=CL2.0 -g";
+inline extern const std::string clBinaryName = "graphs_OpenClBinary_Debug.cl.bin";
 
 #else
 
-const std::string options      = "-Werror -cl-std=CL2.0";
-const std::string clBinaryName = "graphs_OpenClBinary_Release.cl.bin";
+inline extern const std::string options      = "-Werror -cl-std=CL2.0";
+inline extern const std::string clBinaryName = "graphs_OpenClBinary_Release.cl.bin";
 
 #endif // _DEBUG
 
