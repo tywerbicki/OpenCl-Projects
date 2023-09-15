@@ -143,6 +143,7 @@
     <ClInclude Include="platform.h" />
     <ClInclude Include="program.h" />
     <ClInclude Include="required.h" />
+    <ClInclude Include="settings.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

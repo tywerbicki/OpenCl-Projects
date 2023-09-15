@@ -16,6 +16,7 @@
 #include "debug.h"
 #include "context.h"
 #include "device.h"
+#include "settings.h"
 
 
 namespace program
@@ -475,10 +476,13 @@ cl_int Build(
     cl_int result                   = CL_SUCCESS;
     bool   programCreatedFromBinary = true;
 
-    result = CreateFromBinary(context, clBinaryRoot, clBinaryName, program);
-    OPENCL_RETURN_ON_ERROR(result);
+    if (settings::enableProgramBinaryCaching)
+    {
+        result = CreateFromBinary(context, clBinaryRoot, clBinaryName, program);
+        OPENCL_RETURN_ON_ERROR(result);
+    }
 
-    if (program == nullptr)
+    if (program == nullptr || settings::forceCreateProgramFromSource)
     {
         result = CreateFromSource(context, clSourceRoot, program);
         OPENCL_RETURN_ON_ERROR(result);
@@ -550,7 +554,7 @@ cl_int Build(
 
 #endif // _DEBUG
 
-        if (programCreatedFromBinary == false)
+        if (!programCreatedFromBinary && settings::enableProgramBinaryCaching)
         {
             result = StoreBinaries(program, clBinaryRoot, clBinaryName);
             OPENCL_RETURN_ON_ERROR(result);

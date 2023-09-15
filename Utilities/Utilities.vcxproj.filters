@@ -7,9 +7,6 @@
     <Filter Include="Resources">
       <UniqueIdentifier>{8094bbd5-707e-4d51-952b-cb0354b5c41c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Requirements">
-      <UniqueIdentifier>{6f7698cd-0872-41e8-91c0-6ec7b0aafa06}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="context.h">
@@ -28,7 +25,10 @@
       <Filter>OpenCL Utilities</Filter>
     </ClInclude>
     <ClInclude Include="required.h">
-      <Filter>Requirements</Filter>
+      <Filter>Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="settings.h">
+      <Filter>Resources</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
