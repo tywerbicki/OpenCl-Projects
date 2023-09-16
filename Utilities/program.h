@@ -90,9 +90,7 @@ cl_int CreateFromBinary(
 
             if (!clBinaryIfStream.is_open())
             {
-                std::cerr << "Failed to open input stream for OpenCL program binary: "
-                          << clBinaryPath
-                          << "\n";
+                MSG_STD_ERR("Failed to open input stream for OpenCL program binary: ", clBinaryPath);
                 break;
             }
 
@@ -102,9 +100,7 @@ cl_int CreateFromBinary(
 
             if (clBinaryIfStream.fail())
             {
-                std::cerr << "Failed to determine size in bytes of OpenCL program binary: "
-                          << clBinaryPath
-                          << "\n";
+                MSG_STD_ERR("Failed to determine size in bytes of OpenCL program binary: ", clBinaryPath);
                 break;
             }
 
@@ -117,37 +113,17 @@ cl_int CreateFromBinary(
             
             if (clBinaryIfStream.fail())
             {
-                std::cerr << "Failed to read OpenCL program binary from file: "
-                          << clBinaryPath
-                          << "\n";
+                MSG_STD_ERR("Failed to read OpenCL program binary from file: ", clBinaryPath);
                 break;
             }
 
+            DBG_MSG_STD_OUT("Context ", context, " acquired OpenCL binary file: ", clBinaryPath);
+
             nClBinariesAcquired++;
-
-#ifdef _DEBUG
-
-            std::cout << "Context "
-                      << context
-                      << " added binary file: "
-                      << clBinaryPath
-                      << "\n";
-
-#endif // _DEBUG
-
         }
         else
         {
-#ifdef _DEBUG
-
-            std::cout << "Must create program for context "
-                      << context
-                      << " from source: "
-                      << clBinaryPath
-                      << " does not exist.\n";
-
-#endif // _DEBUG
-
+            DBG_MSG_STD_OUT("Must create program for context ", context, " from source: ", clBinaryPath, " does not exist.");
             break;
         }
     }
@@ -177,11 +153,7 @@ cl_int CreateFromBinary(
 #ifdef _DEBUG
         if (result == CL_SUCCESS)
         {
-            std::cout << "Successfully created program "
-                      << program
-                      << " from binary for context: "
-                      << context
-                      << "\n";
+            DBG_MSG_STD_OUT("Successfully created program ", program, " from binary for context: ", context);
         }
         else
         {
@@ -193,11 +165,7 @@ cl_int CreateFromBinary(
                     const cl_int debugResult = device::QueryUniqueId(devices[i], uniqueId);
                     OPENCL_RETURN_ON_ERROR(debugResult);
 
-                    std::cerr << "Error loading program binary for "
-                              << uniqueId
-                              << ": "
-                              << clBinaryStatuses[i]
-                              << "\n";
+                    DBG_MSG_STD_ERR("Error loading program binary for ", uniqueId, ": ", clBinaryStatuses[i]);
                 }
             }
         }
@@ -211,6 +179,7 @@ cl_int CreateFromBinary(
     }
     else
     {
+        // TODO: add debug message saying not all binaries were found.
         program = nullptr;
     }
 
@@ -228,13 +197,9 @@ cl_int CreateFromSource(
 
     if (ec)
     {
-        std::cerr << "Failed to construct directory iterator for "
-                  << clSourceRoot
-                  << ": "
-                  << ec.message()
-                  << " (error code: "
-                  << ec.value()
-                  << ")\n";
+        MSG_STD_ERR("Failed to construct directory iterator for ", clSourceRoot, ": ",
+            ec.message(), " (error code: ", ec.value(), ")");
+
         return CL_BUILD_PROGRAM_FAILURE;
     }
 
@@ -544,15 +509,7 @@ cl_int Build(
 
     case CL_SUCCESS:
     {
-#ifdef _DEBUG
-
-        std::cout << "Successfully built program "
-                  << program
-                  << " for context: "
-                  << context
-                  << "\n";
-
-#endif // _DEBUG
+        DBG_MSG_STD_OUT("Successfully built program ", program, " for context: ", context);
 
         if (!programCreatedFromBinary && settings::enableProgramBinaryCaching)
         {
