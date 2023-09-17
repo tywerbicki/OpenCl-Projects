@@ -73,8 +73,8 @@ cl_int CreateFromBinary(
 
     for (size_t i = 0; i < devices.size(); i++)
     {
-        std::filesystem::path clBinaryPath;
-        std::error_code       ec;
+        std::filesystem::path clBinaryPath = {};
+        std::error_code       ec           = {};
 
         result = device::GetClBinaryPath(clBinaryRoot, devices[i], clBinaryName, clBinaryPath);
         OPENCL_RETURN_ON_ERROR(result);
@@ -150,12 +150,10 @@ cl_int CreateFromBinary(
             &result
         );
 
+        DBG_CL_COND_MSG_STD_OUT(result, "Successfully created program ", program, " from binary for context: ", context);
+
 #ifdef _DEBUG
-        if (result == CL_SUCCESS)
-        {
-            DBG_MSG_STD_OUT("Successfully created program ", program, " from binary for context: ", context);
-        }
-        else
+        if (result != CL_SUCCESS)
         {
             for (size_t i = 0; i < devices.size(); i++)
             {
@@ -192,7 +190,7 @@ cl_int CreateFromSource(
     const std::filesystem::path& clSourceRoot,
     cl_program&                  program)
 {
-    std::error_code                           ec;
+    std::error_code                           ec = {};
     const std::filesystem::directory_iterator clSourceRootDirIter(clSourceRoot, ec);
 
     if (ec)
@@ -203,9 +201,9 @@ cl_int CreateFromSource(
         return CL_BUILD_PROGRAM_FAILURE;
     }
 
-    std::vector<std::string> clSource;
-    std::vector<const char*> clSourceCStrs;
-    std::vector<size_t>      clSourceSizes;
+    std::vector<std::string> clSource      = {};
+    std::vector<const char*> clSourceCStrs = {};
+    std::vector<size_t>      clSourceSizes = {};
 
     for (const auto& clSourceName : clSourceRootDirIter)
     {
@@ -213,20 +211,18 @@ cl_int CreateFromSource(
 
         if (!clSourceIfStream.is_open())
         {
-            std::cerr << "Failed to open OpenCL source text input stream for source file: "
-                      << clSourceName.path()
-                      << "\n";
+            MSG_STD_ERR("Failed to open OpenCL source text input stream for source file: ", clSourceName.path());
+
             return CL_BUILD_PROGRAM_FAILURE;
         }
 
-        std::ostringstream clSourceOsStream;
+        std::ostringstream clSourceOsStream = {};
         clSourceOsStream << clSourceIfStream.rdbuf();
 
         if (clSourceOsStream.fail())
         {
-            std::cerr << "Failed to read OpenCL source text for source file: "
-                      << clSourceName.path()
-                      << "\n";
+            MSG_STD_ERR("Failed to read OpenCL source text for source file: ", clSourceName.path());
+
             return CL_BUILD_PROGRAM_FAILURE;
         }
 
@@ -234,15 +230,7 @@ cl_int CreateFromSource(
         clSourceCStrs.push_back(clSource.back().c_str());
         clSourceSizes.push_back(clSource.back().size());
 
-#ifdef _DEBUG
-
-        std::cout << "Context "
-                  << context
-                  << " added source file: "
-                  << clSourceRoot / clSourceName.path()
-                  << "\n";
-
-#endif // _DEBUG
+        DBG_MSG_STD_OUT("Context ", context, " acquired OpenCL source file: ", clSourceRoot / clSourceName.path());
     }
 
     cl_int result = CL_SUCCESS;
@@ -254,23 +242,9 @@ cl_int CreateFromSource(
         clSourceSizes.data(),
         &result
     );
+    OPENCL_PRINT_ON_ERROR(result);
 
-#ifdef _DEBUG
-
-    if (result == CL_SUCCESS)
-    {
-        std::cout << "Successfully created program "
-                  << program
-                  << " from source for context: "
-                  << context
-                  << "\n";
-    }
-    else
-    {
-        debug::_OpenClDisplayError(result, __FILE__, __LINE__);
-    }
-
-#endif // _DEBUG
+    DBG_CL_COND_MSG_STD_OUT(result, "Successfully created program ", program, " from source for context: ", context);
 
     return result;
 }
@@ -354,11 +328,11 @@ cl_int StoreBinaries(
     );
     OPENCL_RETURN_ON_ERROR(result);
 
-    unsigned int nClBinariesPersisted = 0;
+    uint32_t nClBinariesPersisted = 0;
 
     for (size_t i = 0; i < devices.size(); i++)
     {
-        std::filesystem::path clBinaryDir;
+        std::filesystem::path clBinaryDir = {};
 
         result = device::GetClBinaryDir(clBinaryRoot, devices[i], clBinaryDir);
         OPENCL_RETURN_ON_ERROR(result);
@@ -369,15 +343,8 @@ cl_int StoreBinaries(
         }
         catch (const std::filesystem::filesystem_error& e)
         {
-            std::cerr << "Failed to make directory "
-                      << clBinaryDir
-                      << " to store program binary "
-                      << clBinaryName
-                      << ": "
-                      << e.what()
-                      << " (error code: "
-                      << e.code()
-                      << ")\n";
+            MSG_STD_ERR("Failed to create directory ", clBinaryDir, " to store program binary ",
+                clBinaryName, ": ", e.what(), " (error code: ", e.code(), ")");
             break;
         }
 
@@ -390,9 +357,7 @@ cl_int StoreBinaries(
 
         if (!clBinaryOfStream.is_open())
         {
-            std::cerr << "Failed to open output stream for OpenCL program binary: "
-                      << clBinaryPath
-                      << "\n";
+            MSG_STD_ERR("Failed to open output stream for OpenCL program binary: ", clBinaryPath);
             break;
         }
 
@@ -403,25 +368,17 @@ cl_int StoreBinaries(
 
         if (clBinaryOfStream.fail())
         {
-            std::cerr << "Failed to write OpenCL program binary to file: "
-                      << clBinaryPath
-                      << "\n";
+            MSG_STD_ERR("Failed to write OpenCL program binary to file: ", clBinaryPath);
             break;
         }
 
         nClBinariesPersisted++;
     }
 
-#ifdef _DEBUG
-
-    if (nClBinariesPersisted == clBinaries.size())
-    {
-        std::cout << "Successfully persisted all binaries for program: "
-                  << program
-                  << "\n";
-    }
-
-#endif // _DEBUG
+    DBG_BOOL_COND_MSG_STD_OUT(
+        nClBinariesPersisted == clBinaries.size(),
+        "Successfully persisted all binaries for program: ", program
+    );
 
     return result;
 }
@@ -431,12 +388,12 @@ cl_int StoreBinaries(
 
 
 cl_int Build(
-    const cl_context                   context,
-    const std::filesystem::path&       clBinaryRoot,
-    const std::string&                 clBinaryName,
-    const std::filesystem::path&       clSourceRoot,
-    const std::string&                 clBuildOptions,
-    cl_program&                        program)
+    const cl_context             context,
+    const std::filesystem::path& clBinaryRoot,
+    const std::string&           clBinaryName,
+    const std::filesystem::path& clSourceRoot,
+    const std::string&           clBuildOptions,
+    cl_program&                  program)
 {
     cl_int result                   = CL_SUCCESS;
     bool   programCreatedFromBinary = true;
@@ -489,18 +446,14 @@ cl_int Build(
 
             if (buildStatus != CL_BUILD_SUCCESS)
             {
-                std::cerr << "Failed to build program "
-                          << program
-                          << " for device "
-                          << device
-                          << ":\n";
+                MSG_STD_ERR("Failed to build program ", program, " for device: ", device);
 
                 std::string buildLog = {};
 
                 result = GetBuildLog(program, device, buildLog);
                 OPENCL_RETURN_ON_ERROR(result);
 
-                std::cerr << buildLog;
+                MSG_STD_ERR(buildLog);
             }
         }
 
@@ -523,7 +476,6 @@ cl_int Build(
     default:
         OPENCL_PRINT_ON_ERROR(result);
         return result;
-
     }
 
     return result;
