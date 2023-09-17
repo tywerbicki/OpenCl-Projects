@@ -9,6 +9,7 @@
 
 #include "debug.h"
 #include "required.h"
+#include "settings.h"
 
 
 namespace platform
@@ -165,6 +166,90 @@ cl_int IsConformant(const cl_platform_id platform, bool& isConformant)
     }
 
     isConformant = true;
+    return result;
+}
+
+
+cl_int GetAllConformant(std::vector<cl_platform_id>& conformantPlatforms)
+{
+    cl_int                      result             = CL_SUCCESS;
+    std::vector<cl_platform_id> availablePlatforms = {};
+
+    result = platform::GetAllAvailable(availablePlatforms);
+    OPENCL_RETURN_ON_ERROR(result);
+
+    conformantPlatforms.reserve(availablePlatforms.size());
+
+    for (const auto platform : availablePlatforms)
+    {
+        if (settings::displayPlatformInfo)
+        {
+            result = platform::DisplayInfo(platform);
+            OPENCL_RETURN_ON_ERROR(result);
+        }
+
+        bool platformIsConformant = false;
+
+        result = platform::IsConformant(platform, platformIsConformant);
+        OPENCL_RETURN_ON_ERROR(result);
+
+        if (platformIsConformant)
+        {
+            conformantPlatforms.push_back(platform);
+        }
+    }
+
+    return result;
+}
+
+
+using SelectionStrategy = cl_int(
+    const std::vector<cl_platform_id>& platforms,
+    cl_platform_id&                    selectedPlatform,
+    std::vector<cl_device_id>&         selectedDevices);
+
+
+cl_int MostGpus(
+    const std::vector<cl_platform_id>& platforms,
+    cl_platform_id&                    selectedPlatform,
+    std::vector<cl_device_id>&         selectedDevices)
+{
+    cl_int result = CL_SUCCESS;
+
+    for (const auto platform : platforms)
+    {
+        std::vector<cl_device_id> availableDevices = {};
+        std::vector<cl_device_id> conformantGpus   = {};
+
+        result = device::GetAllAvailable(platform, availableDevices);
+        OPENCL_RETURN_ON_ERROR(result);
+
+        for (const auto device : availableDevices)
+        {
+            if (settings::displayGeneralDeviceInfo)
+            {
+                result = device::DisplayGeneralInfo(device);
+                OPENCL_RETURN_ON_ERROR(result);
+            }
+
+            bool deviceIsGpu = false;
+
+            result = device::IsGpu(device, deviceIsGpu);
+            OPENCL_RETURN_ON_ERROR(result);
+
+            if (deviceIsGpu)
+            {
+                conformantGpus.push_back(device);
+            }
+        }
+
+        if (conformantGpus.size() > selectedDevices.size())
+        {
+            selectedPlatform = platform;
+            selectedDevices  = std::move(conformantGpus);
+        }
+    }
+
     return result;
 }
 

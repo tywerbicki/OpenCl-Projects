@@ -2,41 +2,36 @@
 
 #include <CL/cl.h>
 
-#include <iostream>
-#include <vector>
-
 #include "build.h"
 #include "context.h"
 #include "debug.h"
+#include "platform.h"
 #include "program.h"
 
 
 int main()
 {
-    cl_int                  result   = CL_SUCCESS;
-    std::vector<cl_context> contexts = {};
+    cl_int     result  = CL_SUCCESS;
+    cl_context context = nullptr;
 
-    result = context::GetAllAvailable(contexts);
+    result = context::Create(platform::MostGpus, context);
     OPENCL_RETURN_ON_ERROR(result);
 
-    if (contexts.size() == 0)
+    if (!context)
     {
-        std::cout << "No suitable OpenCL device was detected." << std::endl;
+        MSG_STD_OUT("No OpenCL context was created.");
         return CL_SUCCESS;
     }
 
-    std::vector<cl_program> programs(contexts.size());
+    cl_program program = nullptr;
 
-    for (size_t i = 0; i < contexts.size(); i++)
-    {
-        result = program::Build(
-            contexts[i],
-            build::graphs::clBinaryRoot,
-            build::graphs::clBinaryName,
-            build::graphs::clSourceRoot,
-            build::graphs::options,
-            programs[i]
-        );
-        OPENCL_RETURN_ON_ERROR(result);
-    }
+    result = program::Build(
+        context,
+        build::graphs::clBinaryRoot,
+        build::graphs::clBinaryName,
+        build::graphs::clSourceRoot,
+        build::graphs::options,
+        program
+    );
+    OPENCL_RETURN_ON_ERROR(result);
 }

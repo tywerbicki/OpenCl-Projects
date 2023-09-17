@@ -176,6 +176,24 @@ cl_int DisplayGeneralInfo(const cl_device_id device)
 }
 
 
+cl_int IsGpu(const cl_device_id device, bool& isGpu)
+{
+    cl_int         result     = CL_SUCCESS;
+    cl_device_type deviceType = 0;
+
+    result = QueryParamValue(
+        device,
+        CL_DEVICE_TYPE,
+        deviceType
+    );
+    OPENCL_RETURN_ON_ERROR(result);
+
+    isGpu = (deviceType == CL_DEVICE_TYPE_GPU);
+
+    return result;
+}
+
+
 cl_int IsConformant(const cl_device_id device, bool& isConformant)
 {
     cl_int         result     = CL_SUCCESS;

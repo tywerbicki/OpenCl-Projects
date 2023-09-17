@@ -44,75 +44,43 @@ cl_int GetDevices(const cl_context context, std::vector<cl_device_id>& devices)
 }
 
 
-cl_int GetAllAvailable(std::vector<cl_context>& contexts)
+cl_int Create(
+    platform::SelectionStrategy strategy,
+    cl_context&                 context)
 {
-    cl_int                      result             = CL_SUCCESS;
-    std::vector<cl_platform_id> availablePlatforms = {};
+    cl_int                      result              = CL_SUCCESS;
+    std::vector<cl_platform_id> conformantPlatforms = {};
 
-    result = platform::GetAllAvailable(availablePlatforms);
+    result = platform::GetAllConformant(conformantPlatforms);
     OPENCL_RETURN_ON_ERROR(result);
 
-    for (const auto platform : availablePlatforms)
+    cl_platform_id            platform = nullptr;
+    std::vector<cl_device_id> devices  = {};
+
+    result = strategy(conformantPlatforms, platform, devices);
+    OPENCL_RETURN_ON_ERROR(result);
+
+    if (platform)
     {
-        if (settings::displayPlatformInfo)
-        {
-            result = platform::DisplayInfo(platform);
-            OPENCL_RETURN_ON_ERROR(result);
-        }
+        const std::array<const cl_context_properties, 3> properties{
+            CL_CONTEXT_PLATFORM,
+            reinterpret_cast<cl_context_properties>(platform),
+            0
+        };
 
-        bool platformIsConformant = false;
-
-        result = platform::IsConformant(platform, platformIsConformant);
-        OPENCL_RETURN_ON_ERROR(result);
-
-        if (platformIsConformant)
-        {
-            std::vector<cl_device_id> availableDevices  = {};
-            std::vector<cl_device_id> conformantDevices = {};
-
-            result = device::GetAllAvailable(platform, availableDevices);
-            OPENCL_RETURN_ON_ERROR(result);
-
-            for (const auto device : availableDevices)
-            {
-                if (settings::displayGeneralDeviceInfo)
-                {
-                    result = device::DisplayGeneralInfo(device);
-                    OPENCL_RETURN_ON_ERROR(result);
-                }
-
-                bool deviceIsConformant = false;
-
-                result = device::IsConformant(device, deviceIsConformant);
-                OPENCL_RETURN_ON_ERROR(result);
-
-                if (deviceIsConformant)
-                {
-                    conformantDevices.push_back(device);
-                }
-            }
-
-            if (conformantDevices.size() > 0)
-            {
-                const std::array<const cl_context_properties, 3> properties{
-                    CL_CONTEXT_PLATFORM,
-                    reinterpret_cast<cl_context_properties>(platform),
-                    0
-                };
-
-                const cl_context context = clCreateContext(
-                    properties.data(),
-                    static_cast<cl_uint>(conformantDevices.size()),
-                    conformantDevices.data(),
-                    nullptr,
-                    nullptr,
-                    &result
-                );
-                OPENCL_RETURN_ON_ERROR(result);
-
-                contexts.push_back(context);
-            }
-        }
+        context = clCreateContext(
+            properties.data(),
+            static_cast<cl_uint>(devices.size()),
+            devices.data(),
+            nullptr,
+            nullptr,
+            &result
+        );
+        OPENCL_PRINT_ON_ERROR(result);
+    }
+    else
+    {
+        MSG_STD_OUT("No OpenCL platform was selected.");
     }
 
     return result;
