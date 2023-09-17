@@ -404,7 +404,7 @@ cl_int Build(
         OPENCL_RETURN_ON_ERROR(result);
     }
 
-    if (program == nullptr || settings::forceCreateProgramFromSource)
+    if (!program || settings::forceCreateProgramFromSource)
     {
         result = CreateFromSource(context, clSourceRoot, program);
         OPENCL_RETURN_ON_ERROR(result);

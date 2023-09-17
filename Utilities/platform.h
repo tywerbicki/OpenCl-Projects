@@ -109,8 +109,9 @@ cl_int DisplayInfo(const cl_platform_id platform)
         "CL_PLATFORM_EXTENSIONS"
     };
 
-    cl_int      result     = CL_SUCCESS;
-    std::string paramValue = {};
+    cl_int             result     = CL_SUCCESS;
+    std::string        paramValue = {};
+    std::ostringstream msgStdOut  = {};
 
     for (size_t i = 0; i < paramNames.size(); i++)
     {
@@ -121,8 +122,10 @@ cl_int DisplayInfo(const cl_platform_id platform)
         );
         OPENCL_RETURN_ON_ERROR(result);
 
-        std::cout << paramNameStrs[i] << ": " << paramValue << "\n";
+        msgStdOut << paramNameStrs[i] << ": " << paramValue << "\n";
     }
+
+    MSG_STD_OUT(msgStdOut.view());
 
     return result;
 }

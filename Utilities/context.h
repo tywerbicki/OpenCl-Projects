@@ -8,6 +8,7 @@
 #include "debug.h"
 #include "device.h"
 #include "platform.h"
+#include "settings.h"
 
 
 namespace context
@@ -53,15 +54,15 @@ cl_int GetAllAvailable(std::vector<cl_context>& contexts)
 
     for (const auto platform : availablePlatforms)
     {
-#ifdef _DEBUG
-
-        result = platform::DisplayInfo(platform);
-        OPENCL_RETURN_ON_ERROR(result);
-
-#endif // _DEBUG
+        if (settings::displayPlatformInfo)
+        {
+            result = platform::DisplayInfo(platform);
+            OPENCL_RETURN_ON_ERROR(result);
+        }
 
         bool platformIsConformant = false;
-        result                    = platform::IsConformant(platform, platformIsConformant);
+
+        result = platform::IsConformant(platform, platformIsConformant);
         OPENCL_RETURN_ON_ERROR(result);
 
         if (platformIsConformant)
@@ -74,15 +75,15 @@ cl_int GetAllAvailable(std::vector<cl_context>& contexts)
 
             for (const auto device : availableDevices)
             {
-#ifdef _DEBUG
-
-                result = device::DisplayGeneralInfo(device);
-                OPENCL_RETURN_ON_ERROR(result);
-
-#endif // _DEBUG
+                if (settings::displayGeneralDeviceInfo)
+                {
+                    result = device::DisplayGeneralInfo(device);
+                    OPENCL_RETURN_ON_ERROR(result);
+                }
 
                 bool deviceIsConformant = false;
-                result                  = device::IsConformant(device, deviceIsConformant);
+
+                result = device::IsConformant(device, deviceIsConformant);
                 OPENCL_RETURN_ON_ERROR(result);
 
                 if (deviceIsConformant)

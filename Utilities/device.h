@@ -153,7 +153,8 @@ cl_int DisplayGeneralInfo(const cl_device_id device)
         "CL_DEVICE_HOST_UNIFIED_MEMORY"
     };
 
-    cl_int result = CL_SUCCESS;
+    cl_int             result    = CL_SUCCESS;
+    std::ostringstream msgStdOut = {};
 
     for (size_t i = 0; i < paramNames.size(); i++)
     {
@@ -166,8 +167,10 @@ cl_int DisplayGeneralInfo(const cl_device_id device)
         );
         OPENCL_RETURN_ON_ERROR(result);
 
-        std::cout << paramNameStrs[i] << ": " << paramValue << "\n";
+        msgStdOut << paramNameStrs[i] << ": " << paramValue << "\n";
     }
+
+    MSG_STD_OUT(msgStdOut.view());
 
     return result;
 }
@@ -200,8 +203,9 @@ cl_int QueryUniqueId(const cl_device_id device, std::string& uniqueId)
 {
     cl_int result = CL_SUCCESS;
 
-    // Pretend that we generated a unique identifier for the device.
-    // This could be done by hashing some device characteristics.
+    // TODO: check for extension when looking for devices.
+    // TODO: query unique ID.
+    // https://registry.khronos.org/OpenCL/specs/3.0-unified/html/OpenCL_Ext.html
     uniqueId = "QuadroP1000";
 
     return result;
