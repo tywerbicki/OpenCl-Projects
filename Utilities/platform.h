@@ -16,6 +16,12 @@ namespace platform
 {
 
 
+using SelectionStrategy = cl_int(
+    const std::vector<cl_platform_id>& platforms,
+    cl_platform_id&                    selectedPlatform,
+    std::vector<cl_device_id>&         selectedDevices);
+
+
 cl_int GetAllAvailable(std::vector<cl_platform_id>& platforms)
 {
     cl_int  result     = CL_SUCCESS;
@@ -201,12 +207,6 @@ cl_int GetAllConformant(std::vector<cl_platform_id>& conformantPlatforms)
 
     return result;
 }
-
-
-using SelectionStrategy = cl_int(
-    const std::vector<cl_platform_id>& platforms,
-    cl_platform_id&                    selectedPlatform,
-    std::vector<cl_device_id>&         selectedDevices);
 
 
 cl_int MostGpus(

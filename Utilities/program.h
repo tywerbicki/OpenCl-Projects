@@ -17,6 +17,7 @@
 #include "context.h"
 #include "device.h"
 #include "settings.h"
+#include "types.h"
 
 
 namespace program
@@ -389,22 +390,25 @@ cl_int StoreBinaries(
 
 cl_int Build(
     const cl_context             context,
-    const std::filesystem::path& clBinaryRoot,
-    const std::string&           clBinaryName,
+    const OptionalPathCRef       clBinaryRoot,
+    const OptionalStringCRef     clBinaryName,
     const std::filesystem::path& clSourceRoot,
     const std::string&           clBuildOptions,
     cl_program&                  program)
 {
-    cl_int result                   = CL_SUCCESS;
-    bool   programCreatedFromBinary = true;
+    cl_int     result                      = CL_SUCCESS;
+    bool       programCreatedFromBinary    = true;
+    const bool programBinaryCachingEnabled = settings::enableProgramBinaryCaching &&
+                                             clBinaryRoot.has_value()             &&
+                                             clBinaryName.has_value();
 
-    if (settings::enableProgramBinaryCaching)
+    if (programBinaryCachingEnabled)
     {
-        result = CreateFromBinary(context, clBinaryRoot, clBinaryName, program);
+        result = CreateFromBinary(context, *clBinaryRoot, *clBinaryName, program);
         OPENCL_RETURN_ON_ERROR(result);
     }
 
-    if (!program || settings::forceCreateProgramFromSource)
+    if (settings::forceCreateProgramFromSource || !program)
     {
         result = CreateFromSource(context, clSourceRoot, program);
         OPENCL_RETURN_ON_ERROR(result);
@@ -464,9 +468,9 @@ cl_int Build(
     {
         DBG_MSG_STD_OUT("Successfully built program ", program, " for context: ", context);
 
-        if (!programCreatedFromBinary && settings::enableProgramBinaryCaching)
+        if (programBinaryCachingEnabled && !programCreatedFromBinary)
         {
-            result = StoreBinaries(program, clBinaryRoot, clBinaryName);
+            result = StoreBinaries(program, *clBinaryRoot, *clBinaryName);
             OPENCL_RETURN_ON_ERROR(result);
         }
 

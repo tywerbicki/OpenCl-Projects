@@ -2,6 +2,8 @@
 
 #include <CL/cl.h>
 
+#include <functional>
+
 #include "build.h"
 #include "context.h"
 #include "debug.h"
@@ -27,7 +29,7 @@ int main()
 
     result = program::Build(
         context,
-        build::graphs::clBinaryRoot,
+        std::cref(build::graphs::clBinaryRoot),
         build::graphs::clBinaryName,
         build::graphs::clSourceRoot,
         build::graphs::options,

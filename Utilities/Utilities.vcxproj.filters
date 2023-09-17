@@ -30,5 +30,8 @@
     <ClInclude Include="settings.h">
       <Filter>Resources</Filter>
     </ClInclude>
+    <ClInclude Include="types.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
