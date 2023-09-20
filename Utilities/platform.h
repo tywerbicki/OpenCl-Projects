@@ -142,7 +142,6 @@ cl_int IsConformant(const cl_platform_id platform, bool& isConformant)
 {
     cl_int      result          = CL_SUCCESS;
     std::string platformProfile = {};
-    std::string platformName    = {};
 
     result = platform::QueryParamValue(
         platform,
@@ -152,20 +151,6 @@ cl_int IsConformant(const cl_platform_id platform, bool& isConformant)
     OPENCL_RETURN_ON_ERROR(result);
 
     if (platformProfile != required::PlatformProfile)
-    {
-        isConformant = false;
-        return result;
-    }
-
-    result = platform::QueryParamValue(
-        platform,
-        CL_PLATFORM_NAME,
-        platformName
-    );
-    OPENCL_RETURN_ON_ERROR(result);
-
-    if (platformName != required::PlatformNameNvda &&
-        platformName != required::PlatformNameAmd)
     {
         isConformant = false;
         return result;

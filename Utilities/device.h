@@ -194,36 +194,11 @@ cl_int IsGpu(const cl_device_id device, bool& isGpu)
 }
 
 
-cl_int IsConformant(const cl_device_id device, bool& isConformant)
-{
-    cl_int         result     = CL_SUCCESS;
-    cl_device_type deviceType = 0;
-
-    result = QueryParamValue(
-        device,
-        CL_DEVICE_TYPE,
-        deviceType
-    );
-    OPENCL_RETURN_ON_ERROR(result);
-
-    if (deviceType != required::DeviceType)
-    {
-        isConformant = false;
-        return result;
-    }
-
-    isConformant = true;
-    return result;
-}
-
-
 cl_int QueryUniqueId(const cl_device_id device, std::string& uniqueId)
 {
     cl_int result = CL_SUCCESS;
 
-    // TODO: check for extension when looking for devices.
-    // TODO: query unique ID.
-    // https://registry.khronos.org/OpenCL/specs/3.0-unified/html/OpenCL_Ext.html
+    // TODO: create a hash of device characteristics.
     uniqueId = "QuadroP1000";
 
     return result;
