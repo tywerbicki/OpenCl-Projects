@@ -436,6 +436,7 @@ cl_int Build(
     {
         for (const auto device : devices)
         {
+            // TODO: move to GetBuildStatus
             cl_build_status buildStatus = CL_BUILD_NONE;
 
             result = clGetProgramBuildInfo(
@@ -461,7 +462,8 @@ cl_int Build(
             }
         }
 
-        return CL_BUILD_PROGRAM_FAILURE;
+        result = CL_BUILD_PROGRAM_FAILURE;
+        return result;
     }
 
     case CL_SUCCESS:
@@ -474,6 +476,7 @@ cl_int Build(
             OPENCL_RETURN_ON_ERROR(result);
         }
 
+        result = CL_SUCCESS;
         break;
     }
 

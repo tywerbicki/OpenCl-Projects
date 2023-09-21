@@ -36,4 +36,6 @@ int main()
         program
     );
     OPENCL_RETURN_ON_ERROR(result);
+
+    // TODO: release platform compiler: clUnloadPlatformCompiler
 }
