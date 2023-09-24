@@ -23,12 +23,12 @@
 #define DBG_BOOL_COND_MSG_STD_ERR(boolExpr, ...) if (!(boolExpr)) DBG_MSG_STD_ERR(__VA_ARGS__)
 
 
-#define OPENCL_PRINT_ON_ERROR(result) if ((result) != CL_SUCCESS) debug::_OpenClDisplayError(result, __FILE__, __FUNCTION__, __LINE__)
+#define OPENCL_PRINT_ON_ERROR(result) if ((result) != CL_SUCCESS) debug::_DisplayOpenClError(result, __FILE__, __FUNCTION__, __LINE__)
 
 
 #define OPENCL_RETURN_ON_ERROR(result) if ((result) != CL_SUCCESS) \
                                        { \
-                                           debug::_OpenClDisplayError(result, __FILE__, __FUNCTION__, __LINE__); \
+                                           debug::_DisplayOpenClError(result, __FILE__, __FUNCTION__, __LINE__); \
                                            return result; \
                                        }
 
@@ -58,39 +58,26 @@
 namespace debug
 {
 
+    template<typename... Args>
+    inline void _DisplayMessage(std::ostream&     oStream,
+                                const char* const title,
+                                const char* const fileName,
+                                const char* const callerName,
+                                const uint32_t    lineNumber,
+                                Args&&...         args)
+    {
+        oStream << "\n" << title << "\n";
+    
+        oStream << "File: "     << fileName   << "\n";
+        oStream << "Function: " << callerName << "\n";
+        oStream << "Line: "     << lineNumber << "\n";
+    
+        (oStream << ... << args) << "\n";
+    }
 
-template<typename... Args>
-void _DisplayMessage(
-    std::ostream&     oStream,
-    const char* const title,
-    const char* const fileName,
-    const char* const callerName,
-    const uint32_t    lineNumber,
-    Args&&...         args)
-{
-    oStream << "\n" << title << "\n";
+    void _DisplayOpenClError(const cl_int      error,
+                             const char* const fileName,
+                             const char* const callerName,
+                             const uint32_t    lineNumber);
 
-    oStream << "File: "     << fileName   << "\n";
-    oStream << "Function: " << callerName << "\n";
-    oStream << "Line: "     << lineNumber << "\n";
-
-    (oStream << ... << args) << "\n";
 }
-
-
-void _OpenClDisplayError(
-    const cl_int      error,
-    const char* const fileName,
-    const char* const callerName,
-    const uint32_t    lineNumber)
-{
-    std::cerr << "\nOPENCL ERROR\n";
-
-    std::cerr << "File: "       << fileName   << "\n";
-    std::cerr << "Function: "   << callerName << "\n";
-    std::cerr << "Line: "       << lineNumber << "\n";
-    std::cerr << "Error code: " << error      << "\n";
-}
-
-
-} // debug

@@ -24,9 +24,9 @@ int main()
         MSG_STD_OUT("No OpenCL context was created.");
         return CL_SUCCESS;
     }
-
+    
     cl_program program = nullptr;
-
+    
     result = program::Build(
         context,
         std::cref(build::graphs::clBinaryRoot),

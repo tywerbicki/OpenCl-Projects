@@ -1,29 +1,20 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="OpenCL Utilities">
-      <UniqueIdentifier>{09df81ed-35df-4ca7-8aff-4a79143a05b5}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Resources">
       <UniqueIdentifier>{8094bbd5-707e-4d51-952b-cb0354b5c41c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OpenCL">
+      <UniqueIdentifier>{67390ed5-64ac-47fd-bea0-3fdede699818}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OpenCL\Header Files">
+      <UniqueIdentifier>{2603e1c6-9935-43d9-901f-8215e7edcbb4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OpenCL\Source Files">
+      <UniqueIdentifier>{3357cff6-0b09-4a7f-9d7f-30f612953449}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="context.h">
-      <Filter>OpenCL Utilities</Filter>
-    </ClInclude>
-    <ClInclude Include="debug.h">
-      <Filter>OpenCL Utilities</Filter>
-    </ClInclude>
-    <ClInclude Include="device.h">
-      <Filter>OpenCL Utilities</Filter>
-    </ClInclude>
-    <ClInclude Include="platform.h">
-      <Filter>OpenCL Utilities</Filter>
-    </ClInclude>
-    <ClInclude Include="program.h">
-      <Filter>OpenCL Utilities</Filter>
-    </ClInclude>
     <ClInclude Include="required.h">
       <Filter>Resources</Filter>
     </ClInclude>
@@ -33,5 +24,37 @@
     <ClInclude Include="types.h">
       <Filter>Resources</Filter>
     </ClInclude>
+    <ClInclude Include="context.h">
+      <Filter>OpenCL\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="debug.h">
+      <Filter>OpenCL\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="device.h">
+      <Filter>OpenCL\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="platform.h">
+      <Filter>OpenCL\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="program.h">
+      <Filter>OpenCL\Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="context.cpp">
+      <Filter>OpenCL\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device.cpp">
+      <Filter>OpenCL\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="debug.cpp">
+      <Filter>OpenCL\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="platform.cpp">
+      <Filter>OpenCL\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="program.cpp">
+      <Filter>OpenCL\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
