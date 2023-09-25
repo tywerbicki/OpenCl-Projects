@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <stdint.h>
+#include <string_view>
 
 
 #define MSG_STD_OUT(...) debug::_DisplayMessage(std::cout, "MESSAGE", __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
@@ -59,12 +60,12 @@ namespace debug
 {
 
     template<typename... Args>
-    inline void _DisplayMessage(std::ostream&     oStream,
-                                const char* const title,
-                                const char* const fileName,
-                                const char* const callerName,
-                                const uint32_t    lineNumber,
-                                Args&&...         args)
+    inline void _DisplayMessage(std::ostream&          oStream,
+                                const std::string_view title,
+                                const std::string_view fileName,
+                                const std::string_view callerName,
+                                const uint32_t         lineNumber,
+                                Args&&...              args)
     {
         oStream << "\n" << title << "\n";
     
@@ -75,9 +76,9 @@ namespace debug
         (oStream << ... << args) << "\n";
     }
 
-    void _DisplayOpenClError(const cl_int      error,
-                             const char* const fileName,
-                             const char* const callerName,
-                             const uint32_t    lineNumber);
+    void _DisplayOpenClError(const cl_int           error,
+                             const std::string_view fileName,
+                             const std::string_view callerName,
+                             const uint32_t         lineNumber);
 
 }

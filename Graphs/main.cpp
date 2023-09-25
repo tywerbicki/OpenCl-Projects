@@ -27,14 +27,13 @@ int main()
     
     cl_program program = nullptr;
     
-    result = program::Build(
-        context,
-        std::cref(build::graphs::clBinaryRoot),
-        build::graphs::clBinaryName,
-        build::graphs::clSourceRoot,
-        build::graphs::options,
-        program
-    );
+    result = program::Build(context,
+                            std::cref(build::graphs::clBinaryRoot),
+                            build::graphs::clBinaryName,
+                            build::graphs::clSourceRoot,
+                            build::graphs::options,
+                            program);
+
     OPENCL_RETURN_ON_ERROR(result);
 
     // TODO: release platform compiler: clUnloadPlatformCompiler

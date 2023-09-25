@@ -15,7 +15,7 @@ namespace
 
     cl_int CreateFromBinary(const cl_context             context,
                             const std::filesystem::path& clBinaryRoot,
-                            const std::string&           clBinaryName,
+                            const std::string_view       clBinaryName,
                             cl_program&                  program)
     {
         cl_int                    result  = CL_SUCCESS;
@@ -235,7 +235,7 @@ namespace
 
     cl_int StoreBinaries(const cl_program             program,
                          const std::filesystem::path& clBinaryRoot,
-                         const std::string&           clBinaryName)
+                         const std::string_view       clBinaryName)
     {
         cl_int                    result  = CL_SUCCESS;
         std::vector<cl_device_id> devices = {};
@@ -349,12 +349,12 @@ cl_int program::GetDevices(const cl_program           program,
 }
 
 
-cl_int program::Build(const cl_context             context,
-                      const OptionalPathCRef       clBinaryRoot,
-                      const OptionalStringCRef     clBinaryName,
-                      const std::filesystem::path& clSourceRoot,
-                      const std::string&           clBuildOptions,
-                      cl_program&                  program)
+cl_int program::Build(const cl_context                      context,
+                      const OptionalPathCRef                clBinaryRoot,
+                      const std::optional<std::string_view> clBinaryName,
+                      const std::filesystem::path&          clSourceRoot,
+                      const std::string&                    clBuildOptions,
+                      cl_program&                           program)
 {
     cl_int     result                      = CL_SUCCESS;
     bool       programCreatedFromBinary    = true;

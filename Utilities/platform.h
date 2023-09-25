@@ -2,6 +2,7 @@
 
 #include <CL/cl.h>
 
+#include <span>
 #include <string>
 #include <vector>
 
@@ -9,9 +10,9 @@
 namespace platform
 {
 
-    using SelectionStrategy = cl_int(const std::vector<cl_platform_id>& platforms,
-                                     cl_platform_id&                    selectedPlatform,
-                                     std::vector<cl_device_id>&         selectedDevices);
+    using SelectionStrategy = cl_int(const std::span<cl_platform_id> platforms,
+                                     cl_platform_id&                 selectedPlatform,
+                                     std::vector<cl_device_id>&      selectedDevices);
 
 
     cl_int GetAllAvailable(std::vector<cl_platform_id>& platforms);
@@ -32,8 +33,8 @@ namespace platform
 
     cl_int GetAllConformant(std::vector<cl_platform_id>& conformantPlatforms);
 
-    cl_int MostGpus(const std::vector<cl_platform_id>& platforms,
-                    cl_platform_id&                    selectedPlatform,
-                    std::vector<cl_device_id>&         selectedDevices);
+    cl_int MostGpus(const std::span<cl_platform_id> platforms,
+                    cl_platform_id&                 selectedPlatform,
+                    std::vector<cl_device_id>&      selectedDevices);
 
 }

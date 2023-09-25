@@ -1,10 +1,10 @@
 #include "debug.h"
 
 
-void debug::_DisplayOpenClError(const cl_int      error,
-                                const char* const fileName,
-                                const char* const callerName,
-                                const uint32_t    lineNumber)
+void debug::_DisplayOpenClError(const cl_int           error,
+                                const std::string_view fileName,
+                                const std::string_view callerName,
+                                const uint32_t         lineNumber)
 {
     std::cerr << "\nOPENCL ERROR\n";
     
