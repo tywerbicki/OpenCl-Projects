@@ -21,9 +21,6 @@
     <ClInclude Include="settings.h">
       <Filter>Resources</Filter>
     </ClInclude>
-    <ClInclude Include="types.h">
-      <Filter>Resources</Filter>
-    </ClInclude>
     <ClInclude Include="context.h">
       <Filter>OpenCL\Header Files</Filter>
     </ClInclude>
