@@ -32,33 +32,32 @@ cl_int context::GetDevices(const cl_context           context,
 }
 
 
-cl_int context::Create(platform::SelectionStrategy strategy,
-                       cl_context&                 context)
+cl_int context::Create(platform::UniSelectionStrategy strategy,
+                       cl_platform_id&                selectedPlatform,
+                       cl_context&                    context)
 {
     cl_int                      result              = CL_SUCCESS;
     std::vector<cl_platform_id> conformantPlatforms = {};
+    std::vector<cl_device_id>   selectedDevices     = {};
 
     result = platform::GetAllConformant(conformantPlatforms);
     OPENCL_RETURN_ON_ERROR(result);
 
-    cl_platform_id            platform = nullptr;
-    std::vector<cl_device_id> devices  = {};
-
-    result = strategy(conformantPlatforms, platform, devices);
+    result = strategy(conformantPlatforms, selectedPlatform, selectedDevices);
     OPENCL_RETURN_ON_ERROR(result);
 
-    if (platform)
+    if (selectedPlatform)
     {
         const std::array<const cl_context_properties, 3> properties
         {
             CL_CONTEXT_PLATFORM,
-            reinterpret_cast<cl_context_properties>(platform),
+            reinterpret_cast<cl_context_properties>(selectedPlatform),
             0
         };
 
         context = clCreateContext(properties.data(),
-                                  static_cast<cl_uint>(devices.size()),
-                                  devices.data(),
+                                  static_cast<cl_uint>(selectedDevices.size()),
+                                  selectedDevices.data(),
                                   nullptr,
                                   nullptr,
                                   &result);
@@ -68,8 +67,6 @@ cl_int context::Create(platform::SelectionStrategy strategy,
     else
     {
         MSG_STD_OUT("No OpenCL platform was selected.");
-
-        context = nullptr;
     }
 
     return result;

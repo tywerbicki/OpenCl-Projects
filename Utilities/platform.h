@@ -10,17 +10,16 @@
 namespace platform
 {
 
-    using SelectionStrategy = cl_int(const std::span<cl_platform_id> platforms,
-                                     cl_platform_id&                 selectedPlatform,
-                                     std::vector<cl_device_id>&      selectedDevices);
+    using UniSelectionStrategy = cl_int(const std::span<cl_platform_id> platforms,
+                                        cl_platform_id&                 selectedPlatform,
+                                        std::vector<cl_device_id>&      selectedDevices);
+
+    using PolySelectionStrategy = cl_int(const std::span<cl_platform_id>        platforms,
+                                         std::vector<cl_platform_id>&           selectedPlatforms,
+                                         std::vector<std::vector<cl_device_id>> selectedDevices);
 
 
     cl_int GetAllAvailable(std::vector<cl_platform_id>& platforms);
-
-    template<typename ParamType>
-    cl_int QueryParamValue(const cl_platform_id    platform,
-                           const cl_platform_info  paramName,
-                           std::vector<ParamType>& paramValue);
 
     cl_int QueryParamValue(const cl_platform_id   platform,
                            const cl_platform_info paramName,

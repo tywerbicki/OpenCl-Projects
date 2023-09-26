@@ -198,6 +198,25 @@ namespace
     }
 
 
+    cl_int GetBuildStatus(const cl_program   program,
+                          const cl_device_id device,
+                          cl_build_status&   buildStatus)
+    {
+        cl_int result = CL_SUCCESS;
+
+        result = clGetProgramBuildInfo(program,
+                                       device,
+                                       CL_PROGRAM_BUILD_STATUS,
+                                       sizeof(buildStatus),
+                                       &buildStatus,
+                                       nullptr);
+
+        OPENCL_PRINT_ON_ERROR(result);
+
+        return result;
+    }
+
+
     cl_int GetBuildLog(const cl_program   program,
                        const cl_device_id device,
                        std::string&       buildLog)
@@ -394,16 +413,9 @@ cl_int program::Build(const cl_context                                          
     {
         for (const auto device : devices)
         {
-            // TODO: move to GetBuildStatus
             cl_build_status buildStatus = CL_BUILD_NONE;
 
-            result = clGetProgramBuildInfo(program,
-                                           device,
-                                           CL_PROGRAM_BUILD_STATUS,
-                                           sizeof(buildStatus),
-                                           &buildStatus,
-                                           nullptr);
-
+            result = GetBuildStatus(program, device, buildStatus);
             OPENCL_RETURN_ON_ERROR(result);
 
             if (buildStatus != CL_BUILD_SUCCESS)
@@ -412,6 +424,7 @@ cl_int program::Build(const cl_context                                          
 
                 std::string buildLog = {};
 
+                // TODO: remove vec to string convert nonsense.
                 result = GetBuildLog(program, device, buildLog);
                 OPENCL_RETURN_ON_ERROR(result);
 

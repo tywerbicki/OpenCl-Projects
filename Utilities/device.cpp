@@ -51,10 +51,9 @@ cl_int device::QueryParamValue(const cl_device_id   device,
 }
 
 
-template<typename ParamType>
-cl_int device::QueryParamValue(const cl_device_id      device,
-                               const cl_device_info    paramName,
-                               std::vector<ParamType>& paramValue)
+cl_int device::QueryParamValue(const cl_device_id   device,
+                               const cl_device_info paramName,
+                               std::string&         paramValue)
 {
     cl_int result                = CL_SUCCESS;
     size_t paramValueSizeInBytes = 0;
@@ -67,7 +66,9 @@ cl_int device::QueryParamValue(const cl_device_id      device,
 
     OPENCL_RETURN_ON_ERROR(result);
 
-    paramValue.resize(paramValueSizeInBytes / sizeof(ParamType));
+    // 1. `paramValueSizeInBytes` includes the NULL terminator, hence "-1".
+    // 2. This is legal to do from C++11 onwards.
+    paramValue.resize(paramValueSizeInBytes - 1);
 
     result = clGetDeviceInfo(device,
                              paramName,
@@ -76,27 +77,6 @@ cl_int device::QueryParamValue(const cl_device_id      device,
                              nullptr);
 
     OPENCL_PRINT_ON_ERROR(result);
-
-    return result;
-}
-
-
-cl_int device::QueryParamValue(const cl_device_id   device,
-                               const cl_device_info paramName,
-                               std::string&         paramValue)
-{
-    cl_int            result        = CL_SUCCESS;
-    std::vector<char> paramValueVec = {};
-
-    result = QueryParamValue(device,
-                             paramName,
-                             paramValueVec);
-
-    OPENCL_RETURN_ON_ERROR(result);
-
-    // "-1" to remove the NULL-terminator.
-    paramValue.assign(paramValueVec.data(),
-                      paramValueVec.size() - 1);
 
     return result;
 }

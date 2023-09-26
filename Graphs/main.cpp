@@ -11,10 +11,11 @@
 
 int main()
 {
-    cl_int     result  = CL_SUCCESS;
-    cl_context context = nullptr;
+    cl_int         result   = CL_SUCCESS;
+    cl_platform_id platform = nullptr;
+    cl_context     context  = nullptr;
 
-    result = context::Create(platform::MostGpus, context);
+    result = context::Create(platform::MostGpus, platform, context);
     OPENCL_RETURN_ON_ERROR(result);
 
     if (!context)
@@ -34,5 +35,6 @@ int main()
 
     OPENCL_RETURN_ON_ERROR(result);
 
-    // TODO: release platform compiler: clUnloadPlatformCompiler
+    result = clUnloadPlatformCompiler(platform);
+    OPENCL_RETURN_ON_ERROR(result);
 }

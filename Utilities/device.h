@@ -19,11 +19,6 @@ namespace device
                            const cl_device_info paramName,
                            ParamType&           paramValue);
 
-    template<typename ParamType>
-    cl_int QueryParamValue(const cl_device_id      device,
-                           const cl_device_info    paramName,
-                           std::vector<ParamType>& paramValue);
-
     cl_int QueryParamValue(const cl_device_id   device,
                            const cl_device_info paramName,
                            std::string&         paramValue);
