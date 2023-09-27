@@ -233,20 +233,18 @@ namespace
 
         OPENCL_RETURN_ON_ERROR(result);
 
-        std::vector<char> paramValue(paramValueSizeInBytes);
+        // 1. `paramValueSizeInBytes` includes the NULL terminator, hence "-1".
+        // 2. This is legal to do from C++11 onwards.
+        buildLog.resize(paramValueSizeInBytes - 1);
 
         result = clGetProgramBuildInfo(program,
                                        device,
                                        CL_PROGRAM_BUILD_LOG,
                                        paramValueSizeInBytes,
-                                       paramValue.data(),
+                                       buildLog.data(),
                                        nullptr);
 
-        OPENCL_RETURN_ON_ERROR(result);
-
-        // "-1" to remove the NULL-terminator.
-        buildLog.assign(paramValue.data(),
-                        paramValueSizeInBytes - 1);
+        OPENCL_PRINT_ON_ERROR(result);
 
         return result;
     }
@@ -424,7 +422,6 @@ cl_int program::Build(const cl_context                                          
 
                 std::string buildLog = {};
 
-                // TODO: remove vec to string convert nonsense.
                 result = GetBuildLog(program, device, buildLog);
                 OPENCL_RETURN_ON_ERROR(result);
 
