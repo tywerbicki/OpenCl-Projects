@@ -153,9 +153,9 @@ cl_int platform::GetAllConformant(std::vector<cl_platform_id>& conformantPlatfor
 }
 
 
-cl_int platform::MostGpus(const std::span<cl_platform_id> platforms,
-                          cl_platform_id&                 selectedPlatform,
-                          std::vector<cl_device_id>&      selectedDevices)
+cl_int platform::MostGpus(const std::span<const cl_platform_id> platforms,
+                          cl_platform_id&                       selectedPlatform,
+                          std::vector<cl_device_id>&            selectedDevices)
 {
     cl_int result = CL_SUCCESS;
 

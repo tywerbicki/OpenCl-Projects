@@ -11,33 +11,33 @@
 namespace device
 {
 
-    cl_int GetAllAvailable(const cl_platform_id       platform,
-                           std::vector<cl_device_id>& devices);
+    [[nodiscard]] cl_int GetAllAvailable(cl_platform_id             platform,
+                                         std::vector<cl_device_id>& devices);
 
     template<typename ParamType>
-    cl_int QueryParamValue(const cl_device_id   device,
-                           const cl_device_info paramName,
-                           ParamType&           paramValue);
+    [[nodiscard]] cl_int QueryParamValue(cl_device_id   device,
+                                         cl_device_info paramName,
+                                         ParamType&     paramValue);
 
-    cl_int QueryParamValue(const cl_device_id   device,
-                           const cl_device_info paramName,
-                           std::string&         paramValue);
+    [[nodiscard]] cl_int QueryParamValue(cl_device_id   device,
+                                         cl_device_info paramName,
+                                         std::string&   paramValue);
 
-    cl_int DisplayGeneralInfo(const cl_device_id device);
+    [[nodiscard]] cl_int DisplayGeneralInfo(cl_device_id device);
 
-    cl_int IsGpu(const cl_device_id device,
-                 bool&              isGpu);
+    [[nodiscard]] cl_int IsGpu(cl_device_id device,
+                               bool&        isGpu);
 
-    cl_int QueryUniqueId(const cl_device_id device,
-                         std::string&       uniqueId);
+    [[nodiscard]] cl_int QueryUniqueId(cl_device_id device,
+                                       std::string& uniqueId);
 
-    cl_int GetClBinaryDir(const std::filesystem::path& clBinaryRoot,
-                          const cl_device_id           device,
-                          std::filesystem::path&       clBinaryDir);
+    [[nodiscard]] cl_int GetClBinaryDir(const std::filesystem::path& clBinaryRoot,
+                                        cl_device_id                 device,
+                                        std::filesystem::path&       clBinaryDir);
 
-    cl_int GetClBinaryPath(const std::filesystem::path& clBinaryRoot,
-                           const cl_device_id           device,
-                           const std::string_view       clBinaryName,
-                           std::filesystem::path&       clBinaryPath);
+    [[nodiscard]] cl_int GetClBinaryPath(const std::filesystem::path& clBinaryRoot,
+                                         cl_device_id                 device,
+                                         std::string_view             clBinaryName,
+                                         std::filesystem::path&       clBinaryPath);
 
 }
