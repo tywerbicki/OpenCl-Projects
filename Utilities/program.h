@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <functional>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -22,5 +23,9 @@ namespace program
                  const std::filesystem::path&                                             clSourceRoot,
                  const std::string&                                                       clBuildOptions,
                  cl_program&                                                              program);
+
+    cl_int CreateKernels(const cl_program                   program,
+                         const std::span<const std::string> kernelNames,
+                         const std::span<cl_kernel>         kernels);
 
 }

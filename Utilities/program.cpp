@@ -1,3 +1,4 @@
+#include <cassert>
 #include <fstream>
 #include <sstream>
 #include <stdint.h>
@@ -450,6 +451,27 @@ cl_int program::Build(const cl_context                                          
     default:
         OPENCL_PRINT_ON_ERROR(result);
         return result;
+    }
+
+    return result;
+}
+
+
+cl_int program::CreateKernels(const cl_program                   program,
+                              const std::span<const std::string> kernelNames,
+                              const std::span<cl_kernel>         kernels)
+{
+    assert(kernelNames.size() == kernels.size());
+
+    cl_int result = CL_SUCCESS;
+
+    for (size_t i = 0; i < kernelNames.size(); i++)
+    {
+        kernels[i] = clCreateKernel(program,
+                                    kernelNames[i].c_str(),
+                                    &result);
+
+        OPENCL_RETURN_ON_ERROR(result);
     }
 
     return result;

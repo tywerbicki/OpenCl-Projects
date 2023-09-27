@@ -37,4 +37,6 @@ int main()
 
     result = clUnloadPlatformCompiler(platform);
     OPENCL_RETURN_ON_ERROR(result);
+
+    // TODO: build kernels.
 }
