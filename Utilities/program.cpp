@@ -472,6 +472,8 @@ cl_int program::CreateKernels(const cl_program                   program,
                                     &result);
 
         OPENCL_RETURN_ON_ERROR(result);
+
+        DBG_MSG_STD_OUT("Successfully created kernel ", kernelNames[i], " for program: ", program);
     }
 
     return result;

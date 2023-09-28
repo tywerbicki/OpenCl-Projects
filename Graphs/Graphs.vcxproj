@@ -147,9 +147,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="saxpy.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="build.h" />
+    <ClInclude Include="saxpy.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Utilities\Utilities.vcxproj">
@@ -157,7 +159,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="OpenCL Source\vfadd.cl" />
+    <None Include="OpenCL Source\saxpy.cl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -25,18 +25,22 @@ int main()
     }
     
     cl_program program = nullptr;
-    
-    result = program::Build(context,
-                            std::cref(build::graphs::clBinaryRoot),
-                            build::graphs::clBinaryName,
-                            build::graphs::clSourceRoot,
-                            build::graphs::options,
-                            program);
+    result             = program::Build(context,
+                                        std::cref(build::saxpy::clBinaryRoot),
+                                        build::saxpy::clBinaryName,
+                                        build::saxpy::clSourceRoot,
+                                        build::saxpy::options,
+                                        program);
 
     OPENCL_RETURN_ON_ERROR(result);
 
     result = clUnloadPlatformCompiler(platform);
     OPENCL_RETURN_ON_ERROR(result);
 
-    // TODO: build kernels.
+    std::array<cl_kernel, build::saxpy::kernelNames.size()> kernels = {};
+    result                                                          = program::CreateKernels(program,
+                                                                                             build::saxpy::kernelNames,
+                                                                                             kernels);
+
+    OPENCL_RETURN_ON_ERROR(result);
 }
