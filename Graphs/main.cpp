@@ -1,12 +1,16 @@
 #include <CL/cl.h>
 
+#include <array>
 #include <functional>
+#include <iostream>
+#include <vector>
 
 #include "build.h"
 #include "context.h"
 #include "debug.h"
 #include "platform.h"
 #include "program.h"
+#include "saxpy.h"
 
 
 int main()
@@ -38,9 +42,52 @@ int main()
     OPENCL_RETURN_ON_ERROR(result);
 
     std::array<cl_kernel, build::saxpy::kernelNames.size()> kernels = {};
-    result                                                          = program::CreateKernels(program,
-                                                                                             build::saxpy::kernelNames,
-                                                                                             kernels);
+    std::vector<cl_device_id>                               devices = {};
+
+    result = program::CreateKernels(program,
+                                    build::saxpy::kernelNames,
+                                    kernels);
 
     OPENCL_RETURN_ON_ERROR(result);
+
+    result = context::GetDevices(context, devices);
+    OPENCL_RETURN_ON_ERROR(result);
+
+    const cl_kernel    saxpyKernel = kernels[0];
+    const cl_device_id saxpyDevice = devices[0];
+    cl_event           saxpyEvent  = nullptr;
+
+    const std::array<const cl_queue_properties, 3> queueProperties
+    {
+        CL_QUEUE_PROPERTIES,
+        CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
+        0
+    };
+
+    const cl_command_queue queue = clCreateCommandQueueWithProperties(context,
+                                                                      saxpyDevice,
+                                                                      queueProperties.data(),
+                                                                      &result);
+
+    OPENCL_RETURN_ON_ERROR(result);
+
+    const float              a = 2.0;
+    const std::vector<float> x = { 1.0, 2.0,  3.0};
+    std::vector<float>       y = { 5.0, 10.0, 15.0 };
+
+    result = saxpy::HostPreExecute(context,
+                                   queue,
+                                   saxpyKernel,
+                                   a, x, y,
+                                   saxpyEvent);
+
+    OPENCL_RETURN_ON_ERROR(result);
+
+    result = clWaitForEvents(1, &saxpyEvent);
+    OPENCL_RETURN_ON_ERROR(result);
+
+    for (const auto i : y) std::cout << i << " ";
+    std::cout << "\n";
+
+    return CL_SUCCESS;
 }

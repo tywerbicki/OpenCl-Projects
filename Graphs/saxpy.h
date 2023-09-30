@@ -13,7 +13,8 @@ namespace saxpy
 						  cl_kernel              saxpyKernel,
 						  float                  a,
 						  std::span<const float> x,
-						  std::span<float>       y);
+						  std::span<float>       y,
+						  cl_event&              event);
 
 	cl_int DeviceExecute(cl_command_queue		   commandQueue,
 						 cl_kernel				   saxpyKernel,

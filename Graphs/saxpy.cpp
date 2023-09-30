@@ -24,30 +24,22 @@ cl_int saxpy::HostPreExecute(const cl_context             context,
 							 const cl_kernel              saxpyKernel,
 							 const float                  a,
 							 const std::span<const float> x,
-							 const std::span<float>       y)
+							 const std::span<float>       y,
+							 cl_event&                    event)
 {
 	assert(x.size() == y.size());
 
-	cl_int result = CL_SUCCESS;
+	cl_int                                               result             = CL_SUCCESS;
+	std::array<cl_event, saxpyHostToDeviceWrites::count> hostToDeviceWrites = {};
+	cl_event                                             deviceExecute      = nullptr;
 
 	cl_mem xDeviceBuffer = clCreateBuffer(context,
-										  CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS,
+										  CL_MEM_READ_ONLY,
 										  x.size_bytes(),
 										  nullptr,
 										  &result);
 
 	OPENCL_RETURN_ON_ERROR(result);
-
-	cl_mem yDeviceBuffer = clCreateBuffer(context,
-										  CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS,
-									      y.size_bytes(),
-									      nullptr,
-										  &result);
-
-	OPENCL_RETURN_ON_ERROR(result);
-
-	std::array<cl_event, saxpyHostToDeviceWrites::count> hostToDeviceWriteEvents = {};
-	cl_event                                             saxpyEvent              = nullptr;
 
 	result = clEnqueueWriteBuffer(commandQueue,
 								  xDeviceBuffer,
@@ -57,7 +49,15 @@ cl_int saxpy::HostPreExecute(const cl_context             context,
 								  x.data(),
 								  0,
 								  nullptr,
-								  &hostToDeviceWriteEvents[saxpyHostToDeviceWrites::x]);
+								  &hostToDeviceWrites[saxpyHostToDeviceWrites::x]);
+
+	OPENCL_RETURN_ON_ERROR(result);
+
+	cl_mem yDeviceBuffer = clCreateBuffer(context,
+										  CL_MEM_READ_WRITE,
+									      y.size_bytes(),
+									      nullptr,
+										  &result);
 
 	OPENCL_RETURN_ON_ERROR(result);
 
@@ -69,7 +69,7 @@ cl_int saxpy::HostPreExecute(const cl_context             context,
 								  y.data(),
 								  0,
 								  nullptr,
-								  &hostToDeviceWriteEvents[saxpyHostToDeviceWrites::y]);
+								  &hostToDeviceWrites[saxpyHostToDeviceWrites::y]);
 
 	OPENCL_RETURN_ON_ERROR(result);
 
@@ -96,9 +96,22 @@ cl_int saxpy::HostPreExecute(const cl_context             context,
 
 	result = DeviceExecute(commandQueue,
 						   saxpyKernel,
-						   hostToDeviceWriteEvents,
-						   saxpyEvent);
+						   hostToDeviceWrites,
+						   deviceExecute);
 
+	OPENCL_RETURN_ON_ERROR(result);
+
+	result = clEnqueueReadBuffer(commandQueue,
+								 yDeviceBuffer,
+								 CL_FALSE,
+								 0,
+								 y.size_bytes(),
+								 y.data(),
+								 1,
+								 &deviceExecute,
+								 &event);
+
+	OPENCL_PRINT_ON_ERROR(result);
 	return result;
 }
 
@@ -120,9 +133,10 @@ cl_int saxpy::DeviceExecute(const cl_command_queue			commandQueue,
 									nullptr,
 									&globalWorkSize,
 									&localWorkSize,
-									eventsToWaitOn.size(),
+									static_cast<cl_uint>(eventsToWaitOn.size()),
 									eventsToWaitOn.data(),
 									&saxpyEvent);
 
-	// TODO: clean up after kernel.
+	OPENCL_PRINT_ON_ERROR(result);
+	return result;
 }
