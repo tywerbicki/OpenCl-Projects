@@ -8,13 +8,13 @@
 namespace saxpy
 {
 
-	cl_int HostPreExecute(cl_context             context,
-						  cl_command_queue		 commandQueue,
-						  cl_kernel              saxpyKernel,
-						  float                  a,
-						  std::span<const float> x,
-						  std::span<float>       y,
-						  cl_event&              event);
+	cl_int HostExecute(cl_context             context,
+					   cl_command_queue		  commandQueue,
+					   cl_kernel              saxpyKernel,
+					   float                  a,
+					   std::span<const float> x,
+					   std::span<float>       y,
+					   cl_event&              event);
 
 	cl_int DeviceExecute(cl_command_queue		   commandQueue,
 						 cl_kernel				   saxpyKernel,

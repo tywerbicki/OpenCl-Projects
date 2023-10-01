@@ -72,14 +72,14 @@ int main()
     OPENCL_RETURN_ON_ERROR(result);
 
     const float              a = 2.0;
-    const std::vector<float> x = { 1.0, 2.0,  3.0};
-    std::vector<float>       y = { 5.0, 10.0, 15.0 };
+    const std::vector<float> x = { 1.0, 2.0,  3.0 , 4.0  };
+    std::vector<float>       y = { 5.5, 10.5, 15.5, 20.5 };
 
-    result = saxpy::HostPreExecute(context,
-                                   queue,
-                                   saxpyKernel,
-                                   a, x, y,
-                                   saxpyEvent);
+    result = saxpy::HostExecute(context,
+                                queue,
+                                saxpyKernel,
+                                a, x, y,
+                                saxpyEvent);
 
     OPENCL_RETURN_ON_ERROR(result);
 
