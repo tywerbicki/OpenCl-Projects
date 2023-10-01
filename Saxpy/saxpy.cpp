@@ -149,7 +149,7 @@ cl_int saxpy::HostExecute(const cl_context             context,
                                                     nullptr,
                                                     &result);
 
-    OPENCL_PRINT_ON_ERROR(result);
+    OPENCL_RETURN_ON_ERROR(result);
 
     std::memcpy(y.data(), yDevBufMappedForRead, y.size_bytes());
 
@@ -176,16 +176,16 @@ cl_int saxpy::HostExecute(const cl_context             context,
     result = clReleaseEvent(hostToDeviceWrites[saxpyDeviceBuffers::y]);
     OPENCL_RETURN_ON_ERROR(result);
     result = clReleaseEvent(deviceExecute);
-    OPENCL_RETURN_ON_ERROR(result);
+    OPENCL_PRINT_ON_ERROR(result);
 
     return result;
 }
 
 
-cl_int saxpy::DeviceExecute(const cl_command_queue			commandQueue,
-                            const cl_kernel					saxpyKernel,
+cl_int saxpy::DeviceExecute(const cl_command_queue          commandQueue,
+                            const cl_kernel                 saxpyKernel,
                             const std::span<const cl_event> eventsToWaitOn,
-                            cl_event&						saxpyEvent)
+                            cl_event&                       saxpyEvent)
 {
     cl_int result = CL_SUCCESS;
 
