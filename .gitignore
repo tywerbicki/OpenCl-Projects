@@ -1,5 +1,7 @@
 /x64/
 /Graphs/x64/
-/Utilities/x64
+/Saxpy/x64/
+/Utilities/x64/
 /Graphs/OpenCL Binaries/
+/Saxpy/OpenCL Binaries/
 /.vs/

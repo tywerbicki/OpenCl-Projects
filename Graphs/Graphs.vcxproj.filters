@@ -5,35 +5,14 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Resources">
-      <UniqueIdentifier>{bb8c0a0d-f115-4be2-8ddf-b8da9b8408a5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Kernels">
-      <UniqueIdentifier>{5afd75c7-3d3e-4892-9b58-ddb149e60f68}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files">
       <UniqueIdentifier>{99ebf2a6-e1f7-405a-98d3-05a7bc94fc43}</UniqueIdentifier>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="saxpy.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="build.h">
-      <Filter>Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="saxpy.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="OpenCL Source\saxpy.cl">
-      <Filter>Kernels</Filter>
-    </None>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{bb8c0a0d-f115-4be2-8ddf-b8da9b8408a5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Kernel Files">
+      <UniqueIdentifier>{5afd75c7-3d3e-4892-9b58-ddb149e60f68}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>
