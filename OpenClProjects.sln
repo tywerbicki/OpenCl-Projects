@@ -8,9 +8,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Utilities", "Utilities\Utilities.vcxproj", "{5A0F7719-5EA8-4D36-9EC3-0BC3601639A9}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Saxpy", "Saxpy\Saxpy.vcxproj", "{C9788227-BB58-4BDA-95BC-E73AC36D74D4}"
-	ProjectSection(ProjectDependencies) = postProject
-		{5A0F7719-5EA8-4D36-9EC3-0BC3601639A9} = {5A0F7719-5EA8-4D36-9EC3-0BC3601639A9}
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
