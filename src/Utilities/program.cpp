@@ -1,27 +1,27 @@
+#include "context.h"
+#include "debug.h"
+#include "device.h"
+#include "program.h"
+#include "program_types.h"
+#include "settings.h"
+
 #include <cassert>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <stdint.h>
 #include <system_error>
 
-#include "context.h"
-#include "debug.h"
-#include "device.h"
-#include "program.h"
-#include "settings.h"
-
 
 namespace
 {
-
-    cl_int CreateFromBinary(const cl_context             context,
-                            const std::filesystem::path& clBinaryRoot,
-                            const std::string_view       clBinaryName,
-                            cl_program&                  program)
+    cl_int CreateFromBinary(const cl_context              context,
+                            const program::BinaryCreator& binCreator,
+                            cl_program&                   program)
     {
         cl_int                    result  = CL_SUCCESS;
         std::vector<cl_device_id> devices = {};
-    
+
         result = context::GetDevices(context, devices);
         OPENCL_RETURN_ON_ERROR(result);
     
@@ -30,22 +30,22 @@ namespace
     
         for (size_t i = 0; i < devices.size(); i++)
         {
-            std::filesystem::path clBinaryPath = {};
-            std::error_code       ec           = {};
-    
-            result = device::GetClBinaryPath(clBinaryRoot, devices[i], clBinaryName, clBinaryPath);
+            std::filesystem::path clBinaryFilePath = {};
+            std::error_code       ec               = {};
+
+            result = device::GetClBinaryFilePath(binCreator, devices[i], clBinaryFilePath);
             OPENCL_RETURN_ON_ERROR(result);
     
-            const bool clBinaryExists = std::filesystem::exists(clBinaryPath, ec);
+            const bool clBinaryExists = std::filesystem::exists(clBinaryFilePath, ec);
     
             if (!ec && clBinaryExists)
             {
-                std::ifstream clBinaryIfStream(clBinaryPath,
+                std::ifstream clBinaryIfStream(clBinaryFilePath,
                                                std::ios_base::in | std::ios_base::binary | std::ios_base::ate);
     
                 if (!clBinaryIfStream.is_open())
                 {
-                    MSG_STD_ERR("Failed to open input stream for OpenCL program binary: ", clBinaryPath);
+                    MSG_STD_ERR("Failed to open input stream for OpenCL program binary: ", clBinaryFilePath);
                     break;
                 }
     
@@ -55,7 +55,7 @@ namespace
     
                 if (clBinaryIfStream.fail())
                 {
-                    MSG_STD_ERR("Failed to determine size in bytes of OpenCL program binary: ", clBinaryPath);
+                    MSG_STD_ERR("Failed to determine size in bytes of OpenCL program binary: ", clBinaryFilePath);
                     break;
                 }
     
@@ -66,21 +66,21 @@ namespace
                 
                 if (clBinaryIfStream.fail())
                 {
-                    MSG_STD_ERR("Failed to read OpenCL program binary from file: ", clBinaryPath);
+                    MSG_STD_ERR("Failed to read OpenCL program binary from file: ", clBinaryFilePath);
                     break;
                 }
     
-                DBG_MSG_STD_OUT("Context ", context, " acquired OpenCL binary file: ", clBinaryPath);
+                DBG_MSG_STD_OUT("Context ", context, " acquired OpenCL binary file: ", clBinaryFilePath);
     
                 nClBinariesAcquired++;
             }
             else
             {
-                DBG_MSG_STD_OUT("Must create program for context ", context, " from source: ", clBinaryPath, " does not exist.");
+                DBG_MSG_STD_OUT("Must create program for context ", context, " from source: ", clBinaryFilePath, " does not exist.");
                 break;
             }
         }
-    
+
         if (nClBinariesAcquired == devices.size())
         {
             std::vector<const unsigned char*> clBinaryPtrs(    nClBinariesAcquired);
@@ -111,7 +111,7 @@ namespace
                     if (clBinaryStatuses[i] != CL_SUCCESS)
                     {
                         std::string  uniqueId    = {};
-                        const cl_int debugResult = device::QueryUniqueId(devices[i], uniqueId);
+                        const cl_int debugResult = device::GetUniqueId(devices[i], uniqueId);
                         OPENCL_RETURN_ON_ERROR(debugResult);
 
                         DBG_MSG_STD_ERR("Error loading program binary for ", uniqueId, ": ", clBinaryStatuses[i]);
@@ -136,53 +136,42 @@ namespace
     }
 
 
-    cl_int CreateFromSource(const cl_context             context,
-                            const std::filesystem::path& clSourceRoot,
-                            cl_program&                  program)
+    cl_int CreateFromSource(const cl_context              context,
+                            const program::SourceCreator& srcCreator,
+                            cl_program&                   program)
     {
-        std::error_code                           ec = {};
-        const std::filesystem::directory_iterator clSourceRootDirIter(clSourceRoot, ec);
-    
-        if (ec)
-        {
-            MSG_STD_ERR("Failed to construct directory iterator for ", clSourceRoot, ": ",
-                ec.message(), " (error code: ", ec.value(), ")");
-
-            return CL_BUILD_PROGRAM_FAILURE;
-        }
-    
         std::vector<std::string> clSource      = {};
         std::vector<const char*> clSourceCStrs = {};
         std::vector<size_t>      clSourceSizes = {};
-    
-        for (const auto& clSourceName : clSourceRootDirIter)
+
+        for (const std::string& clSourceFileName : srcCreator.clSourceFileNames)
         {
-            std::ifstream clSourceIfStream(clSourceRoot / clSourceName.path());
-    
+            const std::filesystem::path clSourceFilePath = srcCreator.clSourceRoot / clSourceFileName;
+
+            const std::ifstream clSourceIfStream(clSourceFilePath);
+
             if (!clSourceIfStream.is_open())
             {
-                MSG_STD_ERR("Failed to open OpenCL source text input stream for source file: ", clSourceName.path());
-    
+                MSG_STD_ERR("Failed to open OpenCL source text input stream for source file: ", clSourceFilePath);
                 return CL_BUILD_PROGRAM_FAILURE;
             }
-    
+
             std::ostringstream clSourceOsStream = {};
             clSourceOsStream << clSourceIfStream.rdbuf();
-    
+
             if (clSourceOsStream.fail())
             {
-                MSG_STD_ERR("Failed to read OpenCL source text for source file: ", clSourceName.path());
-    
+                MSG_STD_ERR("Failed to read OpenCL source text for source file: ", clSourceFilePath);
                 return CL_BUILD_PROGRAM_FAILURE;
             }
-    
+
             clSource.push_back(std::move(clSourceOsStream.str()));
             clSourceCStrs.push_back(clSource.back().c_str());
             clSourceSizes.push_back(clSource.back().size());
     
-            DBG_MSG_STD_OUT("Context ", context, " acquired OpenCL source file: ", clSourceRoot / clSourceName.path());
+            DBG_MSG_STD_OUT("Context ", context, " acquired OpenCL source file: ", clSourceFilePath);
         }
-    
+
         cl_int result = CL_SUCCESS;
 
         program = clCreateProgramWithSource(context,
@@ -194,7 +183,7 @@ namespace
         OPENCL_PRINT_ON_ERROR(result);
     
         DBG_CL_COND_MSG_STD_OUT(result, "Successfully created program ", program, " from source for context: ", context);
-    
+
         return result;
     }
 
@@ -251,9 +240,8 @@ namespace
     }
 
 
-    cl_int StoreBinaries(const cl_program             program,
-                         const std::filesystem::path& clBinaryRoot,
-                         const std::string_view       clBinaryName)
+    cl_int StoreBinaries(const cl_program              program,
+                         const program::BinaryCreator& binCreator)
     {
         cl_int                    result  = CL_SUCCESS;
         std::vector<cl_device_id> devices = {};
@@ -293,7 +281,7 @@ namespace
         {
             std::filesystem::path clBinaryDir = {};
     
-            result = device::GetClBinaryDir(clBinaryRoot, devices[i], clBinaryDir);
+            result = device::GetClBinaryDir(binCreator.clBinaryRoot, devices[i], clBinaryDir);
             OPENCL_RETURN_ON_ERROR(result);
     
             try
@@ -302,19 +290,19 @@ namespace
             }
             catch (const std::filesystem::filesystem_error& e)
             {
-                MSG_STD_ERR("Failed to create directory ", clBinaryDir, " to store program binary ",
-                    clBinaryName, ": ", e.what(), " (error code: ", e.code(), ")");
+                MSG_STD_ERR("Failed to create directory ", binCreator.clBinaryRoot, " to store program binary ",
+                    binCreator.clBinaryFileName, ": ", e.what(), " (error code: ", e.code(), ")");
                 break;
             }
+
+            const std::filesystem::path clBinaryFilePath = clBinaryDir / binCreator.clBinaryFileName;
     
-            const std::filesystem::path clBinaryPath = clBinaryDir / clBinaryName;
-    
-            std::ofstream clBinaryOfStream(clBinaryPath,
+            std::ofstream clBinaryOfStream(clBinaryFilePath,
                                            std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
     
             if (!clBinaryOfStream.is_open())
             {
-                MSG_STD_ERR("Failed to open output stream for OpenCL program binary: ", clBinaryPath);
+                MSG_STD_ERR("Failed to open output stream for OpenCL program binary: ", clBinaryFilePath);
                 break;
             }
     
@@ -323,7 +311,7 @@ namespace
     
             if (clBinaryOfStream.fail())
             {
-                MSG_STD_ERR("Failed to write OpenCL program binary to file: ", clBinaryPath);
+                MSG_STD_ERR("Failed to write OpenCL program binary to file: ", clBinaryFilePath);
                 break;
             }
     
@@ -335,7 +323,6 @@ namespace
     
         return result;
     }
-
 }
 
 
@@ -367,28 +354,26 @@ cl_int program::GetDevices(const cl_program           program,
 }
 
 
-cl_int program::Build(const cl_context                                                         context,
-                      const std::optional<std::reference_wrapper<const std::filesystem::path>> clBinaryRoot,
-                      const std::optional<std::string_view>                                    clBinaryName,
-                      const std::filesystem::path&                                             clSourceRoot,
-                      const std::string&                                                       clBuildOptions,
-                      cl_program&                                                              program)
+cl_int program::Build(const cl_context                                                 context,
+                      const std::optional<std::reference_wrapper<const BinaryCreator>> binCreator,
+                      const SourceCreator&                                             srcCreator,
+                      const std::string&                                               clBuildOptions,
+                      cl_program&                                                      program)
 {
     cl_int     result                      = CL_SUCCESS;
     bool       programCreatedFromBinary    = true;
     const bool programBinaryCachingEnabled = settings::enableProgramBinaryCaching &&
-                                             clBinaryRoot.has_value()             &&
-                                             clBinaryName.has_value();
+                                             binCreator.has_value();
 
     if (programBinaryCachingEnabled)
     {
-        result = CreateFromBinary(context, *clBinaryRoot, *clBinaryName, program);
+        result = CreateFromBinary(context, *binCreator, program);
         OPENCL_RETURN_ON_ERROR(result);
     }
 
     if (settings::forceCreateProgramFromSource || !program)
     {
-        result = CreateFromSource(context, clSourceRoot, program);
+        result = CreateFromSource(context, srcCreator, program);
         OPENCL_RETURN_ON_ERROR(result);
 
         programCreatedFromBinary = false;
@@ -440,7 +425,7 @@ cl_int program::Build(const cl_context                                          
 
         if (programBinaryCachingEnabled && !programCreatedFromBinary)
         {
-            result = StoreBinaries(program, *clBinaryRoot, *clBinaryName);
+            result = StoreBinaries(program, *binCreator);
             OPENCL_RETURN_ON_ERROR(result);
         }
 
@@ -473,7 +458,7 @@ cl_int program::CreateKernels(const cl_program                   program,
 
         OPENCL_RETURN_ON_ERROR(result);
 
-        DBG_MSG_STD_OUT("Successfully created kernel ", kernelNames[i], " for program: ", program);
+        DBG_MSG_STD_OUT("Successfully created ", kernelNames[i], " kernel for program: ", program);
     }
 
     return result;

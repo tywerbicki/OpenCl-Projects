@@ -1,16 +1,16 @@
-#include <CL/cl.h>
-
-#include <array>
-#include <functional>
-#include <iostream>
-#include <vector>
-
 #include "build.h"
 #include "context.h"
 #include "debug.h"
 #include "platform.h"
 #include "program.h"
 #include "saxpy.h"
+
+#include <CL/cl.h>
+
+#include <array>
+#include <functional>
+#include <iostream>
+#include <vector>
 
 
 int main()
@@ -27,12 +27,11 @@ int main()
         MSG_STD_OUT("No OpenCL context was created.");
         return CL_SUCCESS;
     }
-    
+
     cl_program program = nullptr;
     result             = program::Build(context,
-                                        std::cref(build::saxpy::clBinaryRoot),
-                                        build::saxpy::clBinaryName,
-                                        build::saxpy::clSourceRoot,
+                                        std::cref(build::saxpy::binaryCreator),
+                                        build::saxpy::sourceCreator,
                                         build::saxpy::options,
                                         program);
 
@@ -41,11 +40,11 @@ int main()
     result = clUnloadPlatformCompiler(platform);
     OPENCL_RETURN_ON_ERROR(result);
 
-    std::array<cl_kernel, build::saxpy::kernelNames.size()> kernels = {};
-    std::vector<cl_device_id>                               devices = {};
+    std::array<cl_kernel, build::saxpy::clKernelNames.size()> kernels = {};
+    std::vector<cl_device_id>                                 devices = {};
 
     result = program::CreateKernels(program,
-                                    build::saxpy::kernelNames,
+                                    build::saxpy::clKernelNames,
                                     kernels);
 
     OPENCL_RETURN_ON_ERROR(result);

@@ -1,11 +1,11 @@
-#include <array>
-#include <sstream>
-
 #include "debug.h"
 #include "device.h"
 #include "platform.h"
 #include "required.h"
 #include "settings.h"
+
+#include <array>
+#include <sstream>
 
 
 cl_int platform::GetAllAvailable(std::vector<cl_platform_id>& platforms)

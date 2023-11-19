@@ -1,7 +1,8 @@
-#include <array>
-
 #include "debug.h"
 #include "device.h"
+#include "program_types.h"
+
+#include <array>
 
 
 cl_int device::GetAllAvailable(const cl_platform_id       platform,
@@ -150,9 +151,11 @@ cl_int device::IsGpu(const cl_device_id device,
 }
 
 
-cl_int device::QueryUniqueId(const cl_device_id device,
-                             std::string&       uniqueId)
+cl_int device::GetUniqueId(const cl_device_id device,
+                           std::string&       uniqueId)
 {
+    UNUSED_PARAMETER(device);
+
     cl_int result = CL_SUCCESS;
 
     // TODO: create a hash of device characteristics.
@@ -176,7 +179,7 @@ cl_int device::GetClBinaryDir(const std::filesystem::path& clBinaryRoot,
 
     OPENCL_RETURN_ON_ERROR(result);
 
-    result = QueryUniqueId(device, uniqueId);
+    result = GetUniqueId(device, uniqueId);
     OPENCL_RETURN_ON_ERROR(result);
 
     clBinaryDir = clBinaryRoot / deviceVendor / uniqueId;
@@ -185,17 +188,16 @@ cl_int device::GetClBinaryDir(const std::filesystem::path& clBinaryRoot,
 }
 
 
-cl_int device::GetClBinaryPath(const std::filesystem::path& clBinaryRoot,
-                               const cl_device_id           device,
-                               const std::string_view       clBinaryName,
-                               std::filesystem::path&       clBinaryPath)
+cl_int device::GetClBinaryFilePath(const program::BinaryCreator& binCreator,
+                                   const cl_device_id            device,
+                                   std::filesystem::path&        clBinaryFilePath)
 {
     cl_int result = CL_SUCCESS;
 
-    result = GetClBinaryDir(clBinaryRoot, device, clBinaryPath);
+    result = GetClBinaryDir(binCreator.clBinaryRoot, device, clBinaryFilePath);
     OPENCL_RETURN_ON_ERROR(result);
 
-    clBinaryPath /= clBinaryName;
+    clBinaryFilePath /= binCreator.clBinaryFileName;
 
     return result;
 }

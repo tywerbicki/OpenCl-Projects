@@ -1,15 +1,14 @@
+#include "debug.h"
+#include "saxpy.h"
+
 #include <array>
 #include <cassert>
 #include <stdint.h>
 #include <tuple>
 
-#include "debug.h"
-#include "saxpy.h"
-
 
 namespace
 {
-
     enum saxpyDeviceBuffers : uint32_t
     {
         x = 0,
@@ -25,7 +24,6 @@ namespace
     };
 
     constexpr cl_uint saxpyNKernelArgs = 3;
-
 }
 
 

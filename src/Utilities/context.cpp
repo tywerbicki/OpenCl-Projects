@@ -1,7 +1,8 @@
-#include <array>
-
 #include "context.h"
 #include "debug.h"
+#include "platform.h"
+
+#include <array>
 
 
 cl_int context::GetDevices(const cl_context           context,
