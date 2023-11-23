@@ -34,9 +34,12 @@ cl_int context::GetDevices(const cl_context           context,
 
 
 cl_int context::Create(platform::UniSelectionStrategy strategy,
-                       cl_platform_id&                selectedPlatform,
-                       cl_context&                    context)
+                       std::optional<cl_platform_id>& selectedPlatform,
+                       std::optional<cl_context>&     context)
 {
+    selectedPlatform.reset();
+    context.reset();
+
     cl_int                      result              = CL_SUCCESS;
     std::vector<cl_platform_id> conformantPlatforms = {};
     std::vector<cl_device_id>   selectedDevices     = {};
@@ -47,12 +50,12 @@ cl_int context::Create(platform::UniSelectionStrategy strategy,
     result = strategy(conformantPlatforms, selectedPlatform, selectedDevices);
     OPENCL_RETURN_ON_ERROR(result);
 
-    if (selectedPlatform)
+    if (selectedPlatform.has_value())
     {
         const std::array<const cl_context_properties, 3> properties
         {
             CL_CONTEXT_PLATFORM,
-            reinterpret_cast<cl_context_properties>(selectedPlatform),
+            reinterpret_cast<cl_context_properties>(selectedPlatform.value()),
             0
         };
 

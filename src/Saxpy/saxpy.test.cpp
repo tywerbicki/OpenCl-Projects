@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <array>
+#include <optional>
 #include <stdlib.h>
 #include <vector>
 
@@ -35,13 +36,18 @@ class SaxpyTest : public testing::Test
 protected:
     static void SetUpTestSuite()
     {
-        cl_int         result   = CL_SUCCESS;
-        cl_platform_id platform = nullptr;
+        cl_int                        result   = CL_SUCCESS;
+        std::optional<cl_platform_id> platform = std::nullopt;
+        std::optional<cl_context>     context  = std::nullopt;
 
-        result = context::Create(platform::MostGpus, platform, s_context);
+        result = context::Create(platform::MostGpus, platform, context);
         ASSERT_EQ(result, CL_SUCCESS);
 
-        if (!s_context)
+        if (context.has_value())
+        {
+            s_context = context.value();
+        }
+        else
         {
             GTEST_SKIP() << "No OpenCL context was created.";
         }
@@ -54,7 +60,7 @@ protected:
 
         ASSERT_EQ(result, CL_SUCCESS);
 
-        result = clUnloadPlatformCompiler(platform);
+        result = clUnloadPlatformCompiler(platform.value());
         ASSERT_EQ(result, CL_SUCCESS);
     }
 
@@ -232,12 +238,12 @@ TEST_F(SaxpyTest, UsingMappedHostMemory)
                     { .index = 4, .sizeInBytes = sizeof(problemSize), .pValue = &problemSize}
             } };
 
-            for (size_t i = 0; i < saxpyKernelArgs.size(); i++)
+            for (const KernelArg& arg : saxpyKernelArgs)
             {
                 result = clSetKernelArg(m_saxpyKernel,
-                                        saxpyKernelArgs[i].index,
-                                        saxpyKernelArgs[i].sizeInBytes,
-                                        saxpyKernelArgs[i].pValue);
+                                        arg.index,
+                                        arg.sizeInBytes,
+                                        arg.pValue);
 
                 ASSERT_EQ(result, CL_SUCCESS);
             }

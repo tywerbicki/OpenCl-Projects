@@ -5,6 +5,7 @@
 
 #include <CL\cl.h>
 
+#include <optional>
 #include <vector>
 
 
@@ -14,8 +15,8 @@ namespace context
                                     std::vector<cl_device_id>& devices);
 
     [[nodiscard]] cl_int Create(platform::UniSelectionStrategy strategy,
-                                cl_platform_id&                selectedPlatform,
-                                cl_context&                    context);
+                                std::optional<cl_platform_id>& selectedPlatform,
+                                std::optional<cl_context>&     context);
 }
 
 

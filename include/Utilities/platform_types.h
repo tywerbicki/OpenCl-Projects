@@ -3,6 +3,7 @@
 
 #include <CL/cl.h>
 
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -10,7 +11,7 @@
 namespace platform
 {
     using UniSelectionStrategy = cl_int(std::span<const cl_platform_id> platforms,
-                                        cl_platform_id&                 selectedPlatform,
+                                        std::optional<cl_platform_id>&  selectedPlatform,
                                         std::vector<cl_device_id>&      selectedDevices);
 
     using PolySelectionStrategy = cl_int(std::span<const cl_platform_id>         platforms,

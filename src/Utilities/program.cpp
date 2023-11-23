@@ -17,8 +17,10 @@ namespace
 {
     cl_int CreateFromBinary(const cl_context              context,
                             const program::BinaryCreator& binCreator,
-                            cl_program&                   program)
+                            std::optional<cl_program>&    program)
     {
+        program.reset();
+
         cl_int                    result  = CL_SUCCESS;
         std::vector<cl_device_id> devices = {};
 
@@ -86,13 +88,13 @@ namespace
             std::vector<const unsigned char*> clBinaryPtrs(    nClBinariesAcquired);
             std::vector<size_t>               clBinarySizes(   nClBinariesAcquired);
             std::vector<cl_int>               clBinaryStatuses(nClBinariesAcquired);
-    
+
             for (size_t i = 0; i < nClBinariesAcquired; i++)
             {
                 clBinaryPtrs[i]  = clBinaries[i].data();
                 clBinarySizes[i] = clBinaries[i].size();
             }
-    
+
             program = clCreateProgramWithBinary(context,
                                                 static_cast<cl_uint>(devices.size()),
                                                 devices.data(),
@@ -100,38 +102,38 @@ namespace
                                                 clBinaryPtrs.data(),
                                                 clBinaryStatuses.data(),
                                                 &result);
-    
-            DBG_CL_COND_MSG_STD_OUT(result, "Successfully created program ", program, " from binary for context: ", context);
 
 #ifdef _DEBUG
-            if (result != CL_SUCCESS)
+            if (result == CL_SUCCESS)
+            {
+                DBG_MSG_STD_OUT("Successfully created program ", program.value(), " from binary for context: ", context);
+            }
+            else
             {
                 for (size_t i = 0; i < devices.size(); i++)
                 {
                     if (clBinaryStatuses[i] != CL_SUCCESS)
                     {
-                        std::string  uniqueId    = {};
-                        const cl_int debugResult = device::GetUniqueId(devices[i], uniqueId);
-                        OPENCL_RETURN_ON_ERROR(debugResult);
+                        std::string uniqueId = {};
+
+                        const cl_int dbgResult = device::GetUniqueId(devices[i], uniqueId);
+                        OPENCL_RETURN_ON_ERROR(dbgResult);
 
                         DBG_MSG_STD_ERR("Error loading program binary for ", uniqueId, ": ", clBinaryStatuses[i]);
                     }
                 }
+
+                return result;
             }
 #endif // _DEBUG
 
-            if (result != CL_SUCCESS)
-            {
-                program = nullptr;
-                result  = CL_SUCCESS;
-            }
+            OPENCL_RETURN_ON_ERROR(result);
         }
         else
         {
             // TODO: add debug message saying not all binaries were found.
-            program = nullptr;
         }
-    
+
         return result;
     }
 
@@ -360,23 +362,25 @@ cl_int program::Build(const cl_context                                          
                       const std::string&                                               clBuildOptions,
                       cl_program&                                                      program)
 {
-    cl_int     result                      = CL_SUCCESS;
-    bool       programCreatedFromBinary    = true;
-    const bool programBinaryCachingEnabled = settings::enableProgramBinaryCaching &&
-                                             binCreator.has_value();
+    cl_int                    result                      = CL_SUCCESS;
+    std::optional<cl_program> programCreatedFromBinary    = std::nullopt;
+    const bool                programBinaryCachingEnabled = settings::enableProgramBinaryCaching &&
+                                                            binCreator.has_value();
 
     if (programBinaryCachingEnabled)
     {
-        result = CreateFromBinary(context, *binCreator, program);
+        result = CreateFromBinary(context, binCreator.value(), programCreatedFromBinary);
         OPENCL_RETURN_ON_ERROR(result);
     }
 
-    if (settings::forceCreateProgramFromSource || !program)
+    if (settings::forceCreateProgramFromSource || !programCreatedFromBinary.has_value())
     {
         result = CreateFromSource(context, srcCreator, program);
         OPENCL_RETURN_ON_ERROR(result);
-
-        programCreatedFromBinary = false;
+    }
+    else
+    {
+        program = programCreatedFromBinary.value();
     }
 
     std::vector<cl_device_id> devices = {};
@@ -395,7 +399,7 @@ cl_int program::Build(const cl_context                                          
     {
     case CL_BUILD_PROGRAM_FAILURE:
     {
-        for (const auto device : devices)
+        for (const cl_device_id device : devices)
         {
             cl_build_status buildStatus = CL_BUILD_NONE;
 
@@ -415,21 +419,19 @@ cl_int program::Build(const cl_context                                          
             }
         }
 
-        result = CL_BUILD_PROGRAM_FAILURE;
-        return result;
+        return CL_BUILD_PROGRAM_FAILURE;
     }
 
     case CL_SUCCESS:
     {
         DBG_MSG_STD_OUT("Successfully built program ", program, " for context: ", context);
 
-        if (programBinaryCachingEnabled && !programCreatedFromBinary)
+        if (programBinaryCachingEnabled && !programCreatedFromBinary.has_value())
         {
-            result = StoreBinaries(program, *binCreator);
+            result = StoreBinaries(program, binCreator.value());
             OPENCL_RETURN_ON_ERROR(result);
         }
 
-        result = CL_SUCCESS;
         break;
     }
 

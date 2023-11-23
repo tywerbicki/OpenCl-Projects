@@ -130,7 +130,7 @@ cl_int platform::GetAllConformant(std::vector<cl_platform_id>& conformantPlatfor
 
     conformantPlatforms.reserve(availablePlatforms.size());
 
-    for (const auto platform : availablePlatforms)
+    for (const cl_platform_id platform : availablePlatforms)
     {
         if (settings::displayPlatformInfo)
         {
@@ -154,12 +154,15 @@ cl_int platform::GetAllConformant(std::vector<cl_platform_id>& conformantPlatfor
 
 
 cl_int platform::MostGpus(const std::span<const cl_platform_id> platforms,
-                          cl_platform_id&                       selectedPlatform,
+                          std::optional<cl_platform_id>&        selectedPlatform,
                           std::vector<cl_device_id>&            selectedDevices)
 {
+    selectedPlatform.reset();
+    selectedDevices.resize(0);
+
     cl_int result = CL_SUCCESS;
 
-    for (const auto platform : platforms)
+    for (const cl_platform_id platform : platforms)
     {
         std::vector<cl_device_id> availableDevices = {};
         std::vector<cl_device_id> conformantGpus   = {};
@@ -167,7 +170,7 @@ cl_int platform::MostGpus(const std::span<const cl_platform_id> platforms,
         result = device::GetAllAvailable(platform, availableDevices);
         OPENCL_RETURN_ON_ERROR(result);
 
-        for (const auto device : availableDevices)
+        for (const cl_device_id device : availableDevices)
         {
             if (settings::displayGeneralDeviceInfo)
             {

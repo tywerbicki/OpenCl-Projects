@@ -3,6 +3,7 @@
 
 #include <CL/cl.h>
 
+#include <optional>
 #include <span>
 #include <string>
 #include <vector>
@@ -24,7 +25,7 @@ namespace platform
     [[nodiscard]] cl_int GetAllConformant(std::vector<cl_platform_id>& conformantPlatforms);
 
     [[nodiscard]] cl_int MostGpus(std::span<const cl_platform_id> platforms,
-                                  cl_platform_id&                 selectedPlatform,
+                                  std::optional<cl_platform_id>&  selectedPlatform,
                                   std::vector<cl_device_id>&      selectedDevices);
 }
 
