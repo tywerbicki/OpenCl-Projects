@@ -21,9 +21,9 @@ namespace build::saxpy
     {
         .clBinaryRoot = std::filesystem::current_path() / "Saxpy_CL_Binaries",
 #ifdef _DEBUG
-        .clBinaryFileName = "saxpy_ClBinary_Debug.cl.bin"
+        .clBinaryFileName = "saxpy_ClBinary_Debug.cl.bin",
 #elif defined(_RELEASE)
-        .clBinaryFileName = "saxpy_ClBinary_Release.cl.bin";
+        .clBinaryFileName = "saxpy_ClBinary_Release.cl.bin",
 #endif // _RELEASE
     };
 
