@@ -9,11 +9,30 @@ cl_int saxpy::DeviceExecute(const cl_command_queue          saxpyQueue,
                             const std::span<const cl_event> eventsToWaitOn,
                             cl_event&                       saxpyComplete)
 {
-    cl_int result = CL_SUCCESS;
+    cl_int       result                         = CL_SUCCESS;
+    cl_device_id executingDevice                = nullptr;
+    size_t       preferredWorkGroupSizeMultiple = 0;
 
-    // TODO: select desirable work group sizes.
-    const size_t globalWorkSize = 1024;
-    const size_t localWorkSize  = 32;
+    result = clGetCommandQueueInfo(saxpyQueue,
+                                   CL_QUEUE_DEVICE,
+                                   sizeof(executingDevice),
+                                   &executingDevice,
+                                   nullptr);
+
+    OPENCL_RETURN_ON_ERROR(result);
+
+    result = clGetKernelWorkGroupInfo(saxpyKernel,
+                                      executingDevice,
+                                      CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
+                                      sizeof(preferredWorkGroupSizeMultiple),
+                                      &preferredWorkGroupSizeMultiple,
+                                      nullptr);
+
+    OPENCL_RETURN_ON_ERROR(result);
+
+    // The multipliers should be tuned per-hardware and per-saxpy-length.
+    const size_t localWorkSize  = preferredWorkGroupSizeMultiple * 2;
+    const size_t globalWorkSize = localWorkSize * 16;
 
     result = clEnqueueNDRangeKernel(saxpyQueue,
                                     saxpyKernel,
