@@ -56,7 +56,7 @@ protected:
                                 std::cref(build::saxpy::binaryCreator),
                                 build::saxpy::sourceCreator,
                                 build::saxpy::options,
-                                s_saxpyProgram);
+                                s_program);
 
         ASSERT_EQ(result, CL_SUCCESS);
 
@@ -70,7 +70,7 @@ protected:
         std::array<cl_kernel, build::saxpy::clKernelNames.size()> kernels = {};
         std::vector<cl_device_id>                                 devices = {};
 
-        result = program::CreateKernels(s_saxpyProgram,
+        result = program::CreateKernels(s_program,
                                         build::saxpy::clKernelNames,
                                         kernels);
 
@@ -79,8 +79,8 @@ protected:
         result = context::GetDevices(s_context, devices);
         ASSERT_EQ(result, CL_SUCCESS);
 
-        m_saxpyKernel                  = kernels[0];
-        const cl_device_id saxpyDevice = devices[0];
+        m_kernel                  = kernels[0];
+        const cl_device_id device = devices[0];
 
         const std::array<const cl_queue_properties, 3> queueProperties
         {
@@ -89,10 +89,10 @@ protected:
             0
         };
 
-        m_saxpyQueue = clCreateCommandQueueWithProperties(s_context,
-                                                          saxpyDevice,
-                                                          queueProperties.data(),
-                                                          &result);
+        m_queue = clCreateCommandQueueWithProperties(s_context,
+                                                     device,
+                                                     queueProperties.data(),
+                                                     &result);
 
         ASSERT_EQ(result, CL_SUCCESS);
     }
@@ -101,10 +101,10 @@ protected:
     {
         cl_int result = CL_SUCCESS;
 
-        result = clReleaseCommandQueue(m_saxpyQueue);
+        result = clReleaseCommandQueue(m_queue);
         EXPECT_EQ(result, CL_SUCCESS);
 
-        result = clReleaseKernel(m_saxpyKernel);
+        result = clReleaseKernel(m_kernel);
         EXPECT_EQ(result, CL_SUCCESS);
     }
 
@@ -112,7 +112,7 @@ protected:
     {
         cl_int result = CL_SUCCESS;
 
-        result = clReleaseProgram(s_saxpyProgram);
+        result = clReleaseProgram(s_program);
         EXPECT_EQ(result, CL_SUCCESS);
 
         result = clReleaseContext(s_context);
@@ -124,43 +124,107 @@ protected:
         return static_cast<float>(std::rand());
     }
 
-//     void SetKernelArgs() noexcept
-//     {
-//         cl_int result = CL_SUCCESS;
-// 
-//         const std::array<KernelArg, 5> saxpyKernelArgs =
-//         { {
-//                 { .index = 0, .sizeInBytes = sizeof(A) ,          .pValue = &A          },
-//                 { .index = 1, .sizeInBytes = sizeof(xDevice),     .pValue = &xDevice    },
-//                 { .index = 2, .sizeInBytes = sizeof(yDevice),     .pValue = &yDevice    },
-//                 { .index = 3, .sizeInBytes = sizeof(zDevice),     .pValue = &zDevice    },
-//                 { .index = 4, .sizeInBytes = sizeof(problemSize), .pValue = &problemSize}
-//         } };
-// 
-//         for (const KernelArg& arg : saxpyKernelArgs)
-//         {
-//             result = clSetKernelArg(m_saxpyKernel,
-//                                     arg.index,
-//                                     arg.sizeInBytes,
-//                                     arg.pValue);
-// 
-//             ASSERT_EQ(result, CL_SUCCESS);
-//         }
-//     }
+    void SetKernelArgs(const size_t problemSize) noexcept
+    {
+        cl_int result = CL_SUCCESS;
 
-    cl_kernel        m_saxpyKernel   = nullptr;
-    cl_command_queue m_saxpyQueue    = nullptr;
-    cl_event         m_saxpyComplete = nullptr;
+        const std::array<KernelArg, 5> kernelArgs =
+        { {
+                { .index = 0, .sizeInBytes = sizeof(A),           .pValue = &A          },
+                { .index = 1, .sizeInBytes = sizeof(m_xDevice),   .pValue = &m_xDevice  },
+                { .index = 2, .sizeInBytes = sizeof(m_yDevice),   .pValue = &m_yDevice  },
+                { .index = 3, .sizeInBytes = sizeof(m_zDevice),   .pValue = &m_zDevice  },
+                { .index = 4, .sizeInBytes = sizeof(problemSize), .pValue = &problemSize}
+        } };
+
+        for (const KernelArg& arg : kernelArgs)
+        {
+            result = clSetKernelArg(m_kernel,
+                                    arg.index,
+                                    arg.sizeInBytes,
+                                    arg.pValue);
+
+            ASSERT_EQ(result, CL_SUCCESS);
+        }
+    }
+
+    void EnqueueSaxpyDeviceExecution() noexcept
+    {
+        cl_int result = CL_SUCCESS;
+
+        result = saxpy::DeviceExecute(m_queue,
+                                      m_kernel,
+                                      m_hostToDeviceResolves,
+                                      m_saxpyExec);
+
+        ASSERT_EQ(result, CL_SUCCESS);
+    }
+
+    void FlushQueueAndSyncHost() noexcept
+    {
+        cl_int   result     = CL_SUCCESS;
+        cl_event flushQueue = nullptr;
+
+        result = clEnqueueBarrierWithWaitList(m_queue,
+                                              0,
+                                              nullptr,
+                                              &flushQueue);
+
+        ASSERT_EQ(result, CL_SUCCESS);
+
+        result = clWaitForEvents(1, &flushQueue);
+        ASSERT_EQ(result, CL_SUCCESS);
+
+        result = clReleaseEvent(flushQueue);
+        EXPECT_EQ(result, CL_SUCCESS);
+    }
+
+    void ReleaseDeviceBuffers() noexcept
+    {
+        cl_int result = CL_SUCCESS;
+
+        result = clReleaseMemObject(m_xDevice);
+        EXPECT_EQ(result, CL_SUCCESS);
+        result = clReleaseMemObject(m_yDevice);
+        EXPECT_EQ(result, CL_SUCCESS);
+        result = clReleaseMemObject(m_zDevice);
+        EXPECT_EQ(result, CL_SUCCESS);
+    }
+
+    void ReleaseResolveEvents() noexcept
+    {
+        cl_int result = CL_SUCCESS;
+
+        for (cl_event event : m_hostToDeviceResolves)
+        {
+            result = clReleaseEvent(event);
+            EXPECT_EQ(result, CL_SUCCESS);
+        }
+
+        result = clReleaseEvent(m_zDeviceToHostResolve);
+        EXPECT_EQ(result, CL_SUCCESS);
+    }
+
+    cl_kernel        m_kernel    = nullptr;
+    cl_command_queue m_queue     = nullptr;
+    cl_event         m_saxpyExec = nullptr;
+
+    std::array<cl_event, saxpyHostToDeviceResolve::count> m_hostToDeviceResolves = {};
+    cl_event                                              m_zDeviceToHostResolve = nullptr;
+
+    cl_mem m_xDevice = nullptr;
+    cl_mem m_yDevice = nullptr;
+    cl_mem m_zDevice = nullptr;
 
     static cl_context s_context;
-    static cl_program s_saxpyProgram;
+    static cl_program s_program;
 
     static const std::array<size_t, 6> ProblemSizes;
     static const float                 A;
 };
 
-cl_context SaxpyTest::s_context      = nullptr;
-cl_program SaxpyTest::s_saxpyProgram = nullptr;
+cl_context SaxpyTest::s_context = nullptr;
+cl_program SaxpyTest::s_program = nullptr;
 
 const std::array<size_t, 6> SaxpyTest::ProblemSizes =
 {
@@ -177,21 +241,18 @@ TEST_F(SaxpyTest, UsingMappedHostMemory)
         cl_int       result             = CL_SUCCESS;
         const size_t problemSizeInBytes = problemSize * sizeof(float);
 
-        std::array<cl_event, saxpyHostToDeviceResolve::count> hostToDeviceResolves = {};
-        cl_event                                              zDeviceToHostResolve = nullptr;
-
-        const cl_mem xDevice = clCreateBuffer(s_context,
-                                              CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-                                              problemSizeInBytes,
-                                              nullptr,
-                                              &result);
+        m_xDevice = clCreateBuffer(s_context,
+                                   CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
+                                   problemSizeInBytes,
+                                   nullptr,
+                                   &result);
 
         ASSERT_EQ(result, CL_SUCCESS);
 
         {
-            float* const xDeviceMappedForWrite = static_cast<float*>(
-                clEnqueueMapBuffer(m_saxpyQueue,
-                                   xDevice,
+            float* const pXDeviceMappedForWrite = static_cast<float*>(
+                clEnqueueMapBuffer(m_queue,
+                                   m_xDevice,
                                    CL_TRUE,
                                    CL_MAP_WRITE_INVALIDATE_REGION,
                                    0,
@@ -204,32 +265,32 @@ TEST_F(SaxpyTest, UsingMappedHostMemory)
 
             ASSERT_EQ(result, CL_SUCCESS);
 
-            std::generate(xDeviceMappedForWrite,
-                          xDeviceMappedForWrite + problemSize,
+            std::generate(pXDeviceMappedForWrite,
+                          pXDeviceMappedForWrite + problemSize,
                           GetRandFloat);
 
-            result = clEnqueueUnmapMemObject(m_saxpyQueue,
-                                             xDevice,
-                                             xDeviceMappedForWrite,
+            result = clEnqueueUnmapMemObject(m_queue,
+                                             m_xDevice,
+                                             pXDeviceMappedForWrite,
                                              0,
                                              nullptr,
-                                             &hostToDeviceResolves[saxpyHostToDeviceResolve::x]);
+                                             &m_hostToDeviceResolves[saxpyHostToDeviceResolve::x]);
 
             ASSERT_EQ(result, CL_SUCCESS);
         }
 
-        const cl_mem yDevice = clCreateBuffer(s_context,
-                                              CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-                                              problemSizeInBytes,
-                                              nullptr,
-                                              &result);
+        m_yDevice = clCreateBuffer(s_context,
+                                   CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
+                                   problemSizeInBytes,
+                                   nullptr,
+                                   &result);
 
         ASSERT_EQ(result, CL_SUCCESS);
 
         {
-            float* const yDeviceMappedForWrite = static_cast<float*>(
-                clEnqueueMapBuffer(m_saxpyQueue,
-                                   yDevice,
+            float* const pYDeviceMappedForWrite = static_cast<float*>(
+                clEnqueueMapBuffer(m_queue,
+                                   m_yDevice,
                                    CL_TRUE,
                                    CL_MAP_WRITE_INVALIDATE_REGION,
                                    0,
@@ -242,75 +303,51 @@ TEST_F(SaxpyTest, UsingMappedHostMemory)
 
             ASSERT_EQ(result, CL_SUCCESS);
 
-            std::generate(yDeviceMappedForWrite,
-                          yDeviceMappedForWrite + problemSize,
+            std::generate(pYDeviceMappedForWrite,
+                          pYDeviceMappedForWrite + problemSize,
                           GetRandFloat);
 
-            result = clEnqueueUnmapMemObject(m_saxpyQueue,
-                                             yDevice,
-                                             yDeviceMappedForWrite,
+            result = clEnqueueUnmapMemObject(m_queue,
+                                             m_yDevice,
+                                             pYDeviceMappedForWrite,
                                              0,
                                              nullptr,
-                                             &hostToDeviceResolves[saxpyHostToDeviceResolve::y]);
+                                             &m_hostToDeviceResolves[saxpyHostToDeviceResolve::y]);
 
             ASSERT_EQ(result, CL_SUCCESS);
         }
 
-        const cl_mem zDevice = clCreateBuffer(s_context,
-                                              CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR | CL_MEM_HOST_READ_ONLY,
-                                              problemSizeInBytes,
-                                              nullptr,
-                                              &result);
+        m_zDevice = clCreateBuffer(s_context,
+                                   CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR | CL_MEM_HOST_READ_ONLY,
+                                   problemSizeInBytes,
+                                   nullptr,
+                                   &result);
 
         ASSERT_EQ(result, CL_SUCCESS);
 
-        {
-            const std::array<KernelArg, 5> saxpyKernelArgs =
-            { {
-                    { .index = 0, .sizeInBytes = sizeof(A) ,          .pValue = &A          },
-                    { .index = 1, .sizeInBytes = sizeof(xDevice),     .pValue = &xDevice    },
-                    { .index = 2, .sizeInBytes = sizeof(yDevice),     .pValue = &yDevice    },
-                    { .index = 3, .sizeInBytes = sizeof(zDevice),     .pValue = &zDevice    },
-                    { .index = 4, .sizeInBytes = sizeof(problemSize), .pValue = &problemSize}
-            } };
+        SetKernelArgs(problemSize);
 
-            for (const KernelArg& arg : saxpyKernelArgs)
-            {
-                result = clSetKernelArg(m_saxpyKernel,
-                                        arg.index,
-                                        arg.sizeInBytes,
-                                        arg.pValue);
-
-                ASSERT_EQ(result, CL_SUCCESS);
-            }
-        }
-
-        result = saxpy::DeviceExecute(m_saxpyQueue,
-                                      m_saxpyKernel,
-                                      hostToDeviceResolves,
-                                      m_saxpyComplete);
-
-        ASSERT_EQ(result, CL_SUCCESS);
+        EnqueueSaxpyDeviceExecution();
 
         {
-            float* const zDeviceMappedForRead = static_cast<float*>(
-                clEnqueueMapBuffer(m_saxpyQueue,
-                                   zDevice,
+            float* const pZDeviceMappedForRead = static_cast<float*>(
+                clEnqueueMapBuffer(m_queue,
+                                   m_zDevice,
                                    CL_FALSE,
                                    CL_MAP_READ,
                                    0,
                                    problemSizeInBytes,
                                    1,
-                                   &m_saxpyComplete,
-                                   &zDeviceToHostResolve,
+                                   &m_saxpyExec,
+                                   &m_zDeviceToHostResolve,
                                    &result)
             );
 
             ASSERT_EQ(result, CL_SUCCESS);
 
-            float* const xDeviceMappedForRead = static_cast<float*>(
-                clEnqueueMapBuffer(m_saxpyQueue,
-                                   xDevice,
+            float* const pXDeviceMappedForRead = static_cast<float*>(
+                clEnqueueMapBuffer(m_queue,
+                                   m_xDevice,
                                    CL_TRUE,
                                    CL_MAP_READ,
                                    0,
@@ -323,9 +360,9 @@ TEST_F(SaxpyTest, UsingMappedHostMemory)
 
             ASSERT_EQ(result, CL_SUCCESS);
 
-            float* const yDeviceMappedForRead = static_cast<float*>(
-                clEnqueueMapBuffer(m_saxpyQueue,
-                                   yDevice,
+            float* const pYDeviceMappedForRead = static_cast<float*>(
+                clEnqueueMapBuffer(m_queue,
+                                   m_yDevice,
                                    CL_TRUE,
                                    CL_MAP_READ,
                                    0,
@@ -341,38 +378,38 @@ TEST_F(SaxpyTest, UsingMappedHostMemory)
             std::vector<float> solution(problemSize);
 
             saxpy::HostExecute(A,
-                               xDeviceMappedForRead,
-                               yDeviceMappedForRead,
+                               pXDeviceMappedForRead,
+                               pYDeviceMappedForRead,
                                solution.data(),
                                solution.size());
 
-            result = clWaitForEvents(1, &zDeviceToHostResolve);
+            result = clWaitForEvents(1, &m_zDeviceToHostResolve);
             ASSERT_EQ(result, CL_SUCCESS);
 
-            EXPECT_TRUE(std::equal(solution.cbegin(), solution.cend(), zDeviceMappedForRead)) <<
+            EXPECT_TRUE(std::equal(solution.cbegin(), solution.cend(), pZDeviceMappedForRead)) <<
                 "Host and device saxpy execution results are not equal";
 
-            result = clEnqueueUnmapMemObject(m_saxpyQueue,
-                                             xDevice,
-                                             xDeviceMappedForRead,
+            result = clEnqueueUnmapMemObject(m_queue,
+                                             m_xDevice,
+                                             pXDeviceMappedForRead,
                                              0,
                                              nullptr,
                                              nullptr);
 
             EXPECT_EQ(result, CL_SUCCESS);
 
-            result = clEnqueueUnmapMemObject(m_saxpyQueue,
-                                             yDevice,
-                                             yDeviceMappedForRead,
+            result = clEnqueueUnmapMemObject(m_queue,
+                                             m_yDevice,
+                                             pYDeviceMappedForRead,
                                              0,
                                              nullptr,
                                              nullptr);
 
             EXPECT_EQ(result, CL_SUCCESS);
 
-            result = clEnqueueUnmapMemObject(m_saxpyQueue,
-                                             zDevice,
-                                             zDeviceMappedForRead,
+            result = clEnqueueUnmapMemObject(m_queue,
+                                             m_zDevice,
+                                             pZDeviceMappedForRead,
                                              0,
                                              nullptr,
                                              nullptr);
@@ -380,38 +417,11 @@ TEST_F(SaxpyTest, UsingMappedHostMemory)
             EXPECT_EQ(result, CL_SUCCESS);
         }
 
-        {
-            cl_event flushSaxpyQueue = nullptr;
+        FlushQueueAndSyncHost();
 
-            result = clEnqueueBarrierWithWaitList(m_saxpyQueue,
-                                                  0,
-                                                  nullptr,
-                                                  &flushSaxpyQueue);
+        ReleaseDeviceBuffers();
 
-            ASSERT_EQ(result, CL_SUCCESS);
-
-            result = clWaitForEvents(1, &flushSaxpyQueue);
-            ASSERT_EQ(result, CL_SUCCESS);
-
-            result = clReleaseEvent(flushSaxpyQueue);
-            EXPECT_EQ(result, CL_SUCCESS);
-        }
-
-        result = clReleaseMemObject(xDevice);
-        EXPECT_EQ(result, CL_SUCCESS);
-        result = clReleaseMemObject(yDevice);
-        EXPECT_EQ(result, CL_SUCCESS);
-        result = clReleaseMemObject(zDevice);
-        EXPECT_EQ(result, CL_SUCCESS);
-
-        for (cl_event event : hostToDeviceResolves)
-        {
-            result = clReleaseEvent(event);
-            EXPECT_EQ(result, CL_SUCCESS);
-        }
-
-        result = clReleaseEvent(zDeviceToHostResolve);
-        EXPECT_EQ(result, CL_SUCCESS);
+        ReleaseResolveEvents();
     }
 }
 
@@ -428,98 +438,71 @@ TEST_F(SaxpyTest, UsingAsyncDataTransfers)
         std::vector<float> zHost(problemSize);
         std::vector<float> solution(problemSize);
 
-        std::array<cl_event, saxpyHostToDeviceResolve::count> hostToDeviceResolves = {};
-        cl_event                                              zDeviceToHostResolve = nullptr;
-
         std::generate(xHost.begin(), xHost.end(), GetRandFloat);
 
-        const cl_mem xDevice = clCreateBuffer(s_context,
-                                              CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY,
-                                              problemSizeInBytes,
-                                              nullptr,
-                                              &result);
+        m_xDevice = clCreateBuffer(s_context,
+                                   CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY,
+                                   problemSizeInBytes,
+                                   nullptr,
+                                   &result);
 
         ASSERT_EQ(result, CL_SUCCESS);
 
-        result = clEnqueueWriteBuffer(m_saxpyQueue,
-                                      xDevice,
+        result = clEnqueueWriteBuffer(m_queue,
+                                      m_xDevice,
                                       CL_FALSE,
                                       0,
                                       problemSizeInBytes,
                                       xHost.data(),
                                       0,
                                       nullptr,
-                                      &hostToDeviceResolves[saxpyHostToDeviceResolve::x]);
+                                      &m_hostToDeviceResolves[saxpyHostToDeviceResolve::x]);
 
         ASSERT_EQ(result, CL_SUCCESS);
 
         std::generate(yHost.begin(), yHost.end(), GetRandFloat);
 
-        const cl_mem yDevice = clCreateBuffer(s_context,
-                                              CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY,
-                                              problemSizeInBytes,
-                                              nullptr,
-                                              &result);
+        m_yDevice = clCreateBuffer(s_context,
+                                   CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY,
+                                   problemSizeInBytes,
+                                   nullptr,
+                                   &result);
 
         ASSERT_EQ(result, CL_SUCCESS);
 
-        result = clEnqueueWriteBuffer(m_saxpyQueue,
-                                      yDevice,
+        result = clEnqueueWriteBuffer(m_queue,
+                                      m_yDevice,
                                       CL_FALSE,
                                       0,
                                       problemSizeInBytes,
                                       yHost.data(),
                                       0,
                                       nullptr,
-                                      &hostToDeviceResolves[saxpyHostToDeviceResolve::y]);
+                                      &m_hostToDeviceResolves[saxpyHostToDeviceResolve::y]);
 
         ASSERT_EQ(result, CL_SUCCESS);
 
-        const cl_mem zDevice = clCreateBuffer(s_context,
-                                              CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY,
-                                              problemSizeInBytes,
-                                              nullptr,
-                                              &result);
+        m_zDevice = clCreateBuffer(s_context,
+                                   CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY,
+                                   problemSizeInBytes,
+                                   nullptr,
+                                   &result);
 
         ASSERT_EQ(result, CL_SUCCESS);
 
-        {
-            const std::array<KernelArg, 5> saxpyKernelArgs =
-            { {
-                    { .index = 0, .sizeInBytes = sizeof(A) ,          .pValue = &A          },
-                    { .index = 1, .sizeInBytes = sizeof(xDevice),     .pValue = &xDevice    },
-                    { .index = 2, .sizeInBytes = sizeof(yDevice),     .pValue = &yDevice    },
-                    { .index = 3, .sizeInBytes = sizeof(zDevice),     .pValue = &zDevice    },
-                    { .index = 4, .sizeInBytes = sizeof(problemSize), .pValue = &problemSize}
-            } };
+        SetKernelArgs(problemSize);
 
-            for (const KernelArg& arg : saxpyKernelArgs)
-            {
-                result = clSetKernelArg(m_saxpyKernel,
-                                        arg.index,
-                                        arg.sizeInBytes,
-                                        arg.pValue);
+        EnqueueSaxpyDeviceExecution();
 
-                ASSERT_EQ(result, CL_SUCCESS);
-            }
-        }
-
-        result = saxpy::DeviceExecute(m_saxpyQueue,
-                                      m_saxpyKernel,
-                                      hostToDeviceResolves,
-                                      m_saxpyComplete);
-
-        ASSERT_EQ(result, CL_SUCCESS);
-
-        result = clEnqueueReadBuffer(m_saxpyQueue,
-                                     zDevice,
+        result = clEnqueueReadBuffer(m_queue,
+                                     m_zDevice,
                                      CL_FALSE,
                                      0,
                                      problemSizeInBytes,
                                      zHost.data(),
                                      1,
-                                     &m_saxpyComplete,
-                                     &zDeviceToHostResolve);
+                                     &m_saxpyExec,
+                                     &m_zDeviceToHostResolve);
 
         ASSERT_EQ(result, CL_SUCCESS);
 
@@ -529,25 +512,13 @@ TEST_F(SaxpyTest, UsingAsyncDataTransfers)
                            solution.data(),
                            solution.size());
 
-        result = clWaitForEvents(1, &zDeviceToHostResolve);
+        result = clWaitForEvents(1, &m_zDeviceToHostResolve);
         ASSERT_EQ(result, CL_SUCCESS);
 
         EXPECT_EQ(solution, zHost) << "Host and device saxpy execution results are not equal";
 
-        result = clReleaseMemObject(xDevice);
-        EXPECT_EQ(result, CL_SUCCESS);
-        result = clReleaseMemObject(yDevice);
-        EXPECT_EQ(result, CL_SUCCESS);
-        result = clReleaseMemObject(zDevice);
-        EXPECT_EQ(result, CL_SUCCESS);
+        ReleaseDeviceBuffers();
 
-        for (cl_event event : hostToDeviceResolves)
-        {
-            result = clReleaseEvent(event);
-            EXPECT_EQ(result, CL_SUCCESS);
-        }
-
-        result = clReleaseEvent(zDeviceToHostResolve);
-        EXPECT_EQ(result, CL_SUCCESS);
+        ReleaseResolveEvents();
     }
 }
