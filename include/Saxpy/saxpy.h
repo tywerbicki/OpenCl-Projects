@@ -8,16 +8,21 @@
 
 namespace saxpy
 {
-    [[nodiscard]] cl_int DeviceExecute(cl_command_queue          saxpyQueue,
+    [[nodiscard]] cl_int EnqueueKernel(float                     a,
+                                       cl_mem                    xDevice,
+                                       cl_mem                    yDevice,
+                                       cl_mem                    zDevice,
+                                       size_t                    len,
+                                       cl_command_queue          saxpyQueue,
                                        cl_kernel                 saxpyKernel,
                                        std::span<const cl_event> eventsToWaitOn,
                                        cl_event&                 saxpyComplete);
 
-    void HostExecute(float        a,
-                     const float* pXHost,
-                     const float* pYHost,
-                     float*       pZHost,
-                     size_t       len);
+    void HostExec(float        a,
+                  const float* pXHost,
+                  const float* pYHost,
+                  float*       pZHost,
+                  size_t       len);
 }
 
 

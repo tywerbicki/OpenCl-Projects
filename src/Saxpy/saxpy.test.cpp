@@ -15,20 +15,15 @@
 #include <vector>
 
 
-enum saxpyHostToDeviceResolve : unsigned int
+namespace
 {
-    x = 0,
-    y,
-    count,
-};
-
-
-struct KernelArg
-{
-    cl_uint     index;
-    size_t      sizeInBytes;
-    const void* pValue;
-};
+    enum saxpyHostToDeviceResolve : unsigned int
+    {
+        x = 0,
+        y,
+        count,
+    };
+}
 
 
 class SaxpyTest : public testing::Test
@@ -124,35 +119,16 @@ protected:
         return static_cast<float>(std::rand());
     }
 
-    void SetKernelArgs(const size_t problemSize) noexcept
+    void EnqueueSaxpyDeviceExecution(const size_t problemSize) noexcept
     {
         cl_int result = CL_SUCCESS;
 
-        const std::array<KernelArg, 5> kernelArgs =
-        { {
-                { .index = 0, .sizeInBytes = sizeof(A),           .pValue = &A          },
-                { .index = 1, .sizeInBytes = sizeof(m_xDevice),   .pValue = &m_xDevice  },
-                { .index = 2, .sizeInBytes = sizeof(m_yDevice),   .pValue = &m_yDevice  },
-                { .index = 3, .sizeInBytes = sizeof(m_zDevice),   .pValue = &m_zDevice  },
-                { .index = 4, .sizeInBytes = sizeof(problemSize), .pValue = &problemSize}
-        } };
-
-        for (const KernelArg& arg : kernelArgs)
-        {
-            result = clSetKernelArg(m_kernel,
-                                    arg.index,
-                                    arg.sizeInBytes,
-                                    arg.pValue);
-
-            ASSERT_EQ(result, CL_SUCCESS);
-        }
-    }
-
-    void EnqueueSaxpyDeviceExecution() noexcept
-    {
-        cl_int result = CL_SUCCESS;
-
-        result = saxpy::DeviceExecute(m_queue,
+        result = saxpy::EnqueueKernel(A,
+                                      m_xDevice,
+                                      m_yDevice,
+                                      m_zDevice,
+                                      problemSize,
+                                      m_queue,
                                       m_kernel,
                                       m_hostToDeviceResolves,
                                       m_saxpyExec);
@@ -325,9 +301,7 @@ TEST_F(SaxpyTest, UsingMappedHostMemory)
 
         ASSERT_EQ(result, CL_SUCCESS);
 
-        SetKernelArgs(problemSize);
-
-        EnqueueSaxpyDeviceExecution();
+        EnqueueSaxpyDeviceExecution(problemSize);
 
         {
             float* const pZDeviceMappedForRead = static_cast<float*>(
@@ -377,11 +351,11 @@ TEST_F(SaxpyTest, UsingMappedHostMemory)
 
             std::vector<float> solution(problemSize);
 
-            saxpy::HostExecute(A,
-                               pXDeviceMappedForRead,
-                               pYDeviceMappedForRead,
-                               solution.data(),
-                               solution.size());
+            saxpy::HostExec(A,
+                            pXDeviceMappedForRead,
+                            pYDeviceMappedForRead,
+                            solution.data(),
+                            solution.size());
 
             result = clWaitForEvents(1, &m_zDeviceToHostResolve);
             ASSERT_EQ(result, CL_SUCCESS);
@@ -490,9 +464,7 @@ TEST_F(SaxpyTest, UsingAsyncDataTransfers)
 
         ASSERT_EQ(result, CL_SUCCESS);
 
-        SetKernelArgs(problemSize);
-
-        EnqueueSaxpyDeviceExecution();
+        EnqueueSaxpyDeviceExecution(problemSize);
 
         result = clEnqueueReadBuffer(m_queue,
                                      m_zDevice,
@@ -506,11 +478,11 @@ TEST_F(SaxpyTest, UsingAsyncDataTransfers)
 
         ASSERT_EQ(result, CL_SUCCESS);
 
-        saxpy::HostExecute(A,
-                           xHost.data(),
-                           yHost.data(),
-                           solution.data(),
-                           solution.size());
+        saxpy::HostExec(A,
+                        xHost.data(),
+                        yHost.data(),
+                        solution.data(),
+                        solution.size());
 
         result = clWaitForEvents(1, &m_zDeviceToHostResolve);
         ASSERT_EQ(result, CL_SUCCESS);
